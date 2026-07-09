@@ -10,8 +10,8 @@ import java.util.Optional;
 @Repository
 public interface CreditCardRepository extends JpaRepository<CreditCard, Long> {
 
-    List<CreditCard> findAllByUserId(Long userId);
+    List<CreditCard> findAllByUserIdIn(List<Long> userIds);
 
-    Optional<CreditCard> findByIdAndUserId(Long id, Long userId);
+    Optional<CreditCard> findByIdAndUserIdIn(Long id, List<Long> userIds);
 
 }

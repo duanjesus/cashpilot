@@ -5,6 +5,7 @@ import com.cashpilot.dto.response.BankAccountResponseDTO;
 import com.cashpilot.entity.BankAccount;
 import com.cashpilot.entity.User;
 import com.cashpilot.entity.enums.BankAccountType;
+import com.cashpilot.entity.enums.ContaOrigem;
 import com.cashpilot.exception.BusinessException;
 import com.cashpilot.exception.ResourceNotFoundException;
 import com.cashpilot.mapper.BankAccountMapper;
@@ -24,12 +25,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -66,7 +68,7 @@ class BankAccountServiceImplTest {
         user = User.builder().id(1L).name("Ana").email("ana@cashpilot.com").password("hash").build();
         requestDTO = new BankAccountRequestDTO(
                 "Conta Corrente", "Banco X", BankAccountType.CORRENTE,
-                new BigDecimal("1000.00"), LocalDate.of(2026, 1, 1), true);
+                new BigDecimal("1000.00"), LocalDate.of(2026, 1, 1), true, null, null);
         account = BankAccount.builder()
                 .id(10L)
                 .user(user)
@@ -86,7 +88,8 @@ class BankAccountServiceImplTest {
         when(bankAccountRepository.save(any(BankAccount.class))).thenReturn(account);
         when(bankAccountMapper.toResponseDto(account)).thenReturn(
                 new BankAccountResponseDTO(10L, requestDTO.nome(), requestDTO.instituicao(), requestDTO.tipo(),
-                        requestDTO.saldoInicial(), requestDTO.dataSaldoInicial(), true, null));
+                        requestDTO.saldoInicial(), requestDTO.dataSaldoInicial(), true, null,
+                        ContaOrigem.MANUAL, null, null));
         when(incomeRepository.sumValorByContaBancariaId(10L)).thenReturn(BigDecimal.ZERO);
         when(expenseRepository.sumValorByContaBancariaId(10L)).thenReturn(BigDecimal.ZERO);
         when(transferRepository.sumValorByContaOrigemId(10L)).thenReturn(BigDecimal.ZERO);
@@ -103,8 +106,8 @@ class BankAccountServiceImplTest {
     @Test
     @DisplayName("Deve lançar BusinessException ao excluir conta referenciada por receitas")
     void deveLancarExcecaoAoExcluirContaReferenciada() {
-        when(currentUserProvider.getCurrentUserId()).thenReturn(1L);
-        when(bankAccountRepository.findByIdAndUserId(10L, 1L)).thenReturn(Optional.of(account));
+        when(currentUserProvider.getScopeUserIds()).thenReturn(List.of(1L));
+        when(bankAccountRepository.findByIdAndUserIdIn(10L, List.of(1L))).thenReturn(Optional.of(account));
         when(incomeRepository.existsByContaBancariaId(10L)).thenReturn(true);
 
         assertThatThrownBy(() -> bankAccountService.delete(10L))
@@ -116,8 +119,8 @@ class BankAccountServiceImplTest {
     @Test
     @DisplayName("Deve lançar ResourceNotFoundException ao buscar conta que não pertence ao usuário")
     void deveLancarExcecaoQuandoContaNaoPertenceAoUsuario() {
-        when(currentUserProvider.getCurrentUserId()).thenReturn(1L);
-        when(bankAccountRepository.findByIdAndUserId(anyLong(), anyLong())).thenReturn(Optional.empty());
+        when(currentUserProvider.getScopeUserIds()).thenReturn(List.of(1L));
+        when(bankAccountRepository.findByIdAndUserIdIn(anyLong(), anyList())).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> bankAccountService.findById(99L))
                 .isInstanceOf(ResourceNotFoundException.class);

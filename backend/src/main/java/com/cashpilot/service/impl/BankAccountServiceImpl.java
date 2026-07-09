@@ -4,6 +4,7 @@ import com.cashpilot.dto.request.BankAccountRequestDTO;
 import com.cashpilot.dto.response.BankAccountResponseDTO;
 import com.cashpilot.entity.BankAccount;
 import com.cashpilot.entity.User;
+import com.cashpilot.entity.enums.ContaOrigem;
 import com.cashpilot.exception.BusinessException;
 import com.cashpilot.exception.ResourceNotFoundException;
 import com.cashpilot.mapper.BankAccountMapper;
@@ -34,6 +35,7 @@ public class BankAccountServiceImpl implements BankAccountService {
 
     @Override
     public BankAccountResponseDTO create(BankAccountRequestDTO dto) {
+        currentUserProvider.requireWriteAccess();
         User user = currentUserProvider.getCurrentUser();
 
         BankAccount account = BankAccount.builder()
@@ -44,6 +46,8 @@ public class BankAccountServiceImpl implements BankAccountService {
                 .saldoInicial(dto.saldoInicial())
                 .dataSaldoInicial(dto.dataSaldoInicial())
                 .ativa(dto.ativa() == null || dto.ativa())
+                .origem(dto.origem() == null ? ContaOrigem.MANUAL : dto.origem())
+                .instituicaoNome(dto.instituicaoNome())
                 .build();
 
         BankAccount saved = bankAccountRepository.save(account);
@@ -52,6 +56,7 @@ public class BankAccountServiceImpl implements BankAccountService {
 
     @Override
     public BankAccountResponseDTO update(Long id, BankAccountRequestDTO dto) {
+        currentUserProvider.requireWriteAccess();
         BankAccount account = findOwnedEntityById(id);
 
         account.setNome(dto.nome());
@@ -62,6 +67,10 @@ public class BankAccountServiceImpl implements BankAccountService {
         if (dto.ativa() != null) {
             account.setAtiva(dto.ativa());
         }
+        if (dto.origem() != null) {
+            account.setOrigem(dto.origem());
+        }
+        account.setInstituicaoNome(dto.instituicaoNome());
 
         BankAccount updated = bankAccountRepository.save(account);
         return toResponseWithSaldo(updated);
@@ -69,6 +78,7 @@ public class BankAccountServiceImpl implements BankAccountService {
 
     @Override
     public void delete(Long id) {
+        currentUserProvider.requireWriteAccess();
         BankAccount account = findOwnedEntityById(id);
 
         boolean inUse = incomeRepository.existsByContaBancariaId(id)
@@ -92,8 +102,8 @@ public class BankAccountServiceImpl implements BankAccountService {
     @Override
     @Transactional(readOnly = true)
     public List<BankAccountResponseDTO> findAll() {
-        Long userId = currentUserProvider.getCurrentUserId();
-        return bankAccountRepository.findAllByUserId(userId).stream()
+        List<Long> scopeUserIds = currentUserProvider.getScopeUserIds();
+        return bankAccountRepository.findAllByUserIdIn(scopeUserIds).stream()
                 .map(this::toResponseWithSaldo)
                 .toList();
     }
@@ -101,8 +111,8 @@ public class BankAccountServiceImpl implements BankAccountService {
     @Override
     @Transactional(readOnly = true)
     public BigDecimal getSaldoAtualTotal() {
-        Long userId = currentUserProvider.getCurrentUserId();
-        return bankAccountRepository.findAllByUserId(userId).stream()
+        List<Long> scopeUserIds = currentUserProvider.getScopeUserIds();
+        return bankAccountRepository.findAllByUserIdIn(scopeUserIds).stream()
                 .filter(BankAccount::getAtiva)
                 .map(this::computeSaldoAtual)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
@@ -134,13 +144,16 @@ public class BankAccountServiceImpl implements BankAccountService {
                 base.saldoInicial(),
                 base.dataSaldoInicial(),
                 base.ativa(),
-                saldoAtual
+                saldoAtual,
+                base.origem(),
+                base.instituicaoNome(),
+                base.ultimaSincronizacao()
         );
     }
 
     private BankAccount findOwnedEntityById(Long id) {
-        Long userId = currentUserProvider.getCurrentUserId();
-        return bankAccountRepository.findByIdAndUserId(id, userId)
+        List<Long> scopeUserIds = currentUserProvider.getScopeUserIds();
+        return bankAccountRepository.findByIdAndUserIdIn(id, scopeUserIds)
                 .orElseThrow(() -> ResourceNotFoundException.of("Conta bancária", id));
     }
 

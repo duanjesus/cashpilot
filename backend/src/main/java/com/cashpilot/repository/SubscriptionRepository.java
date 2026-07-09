@@ -10,11 +10,11 @@ import java.util.Optional;
 @Repository
 public interface SubscriptionRepository extends JpaRepository<Subscription, Long> {
 
-    Optional<Subscription> findByIdAndUserId(Long id, Long userId);
+    Optional<Subscription> findByIdAndUserIdIn(Long id, List<Long> userIds);
 
-    List<Subscription> findAllByUserId(Long userId);
+    List<Subscription> findAllByUserIdIn(List<Long> userIds);
 
-    List<Subscription> findAllByUserIdAndAtivaTrue(Long userId);
+    List<Subscription> findAllByUserIdInAndAtivaTrue(List<Long> userIds);
 
     /** System-wide, no user scoping — used only by the background scheduler. */
     List<Subscription> findAllByAtivaTrue();

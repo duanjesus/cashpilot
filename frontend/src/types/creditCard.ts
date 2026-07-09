@@ -1,3 +1,5 @@
+import type { ContaOrigem } from "@/types/openFinance";
+
 export type CardBrand = "VISA" | "MASTERCARD" | "ELO" | "AMEX" | "OUTRA";
 
 export const CARD_BRAND_LABELS: Record<CardBrand, string> = {
@@ -18,6 +20,9 @@ export interface CreditCard {
   contaVinculadaId: number | null;
   ativo: boolean;
   faturaAtual: number;
+  origem: ContaOrigem;
+  instituicaoNome: string | null;
+  ultimaSincronizacao: string | null;
 }
 
 export interface CreditCardRequest {

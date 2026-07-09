@@ -16,7 +16,7 @@ import java.util.Optional;
 @Repository
 public interface IncomeRepository extends JpaRepository<Income, Long> {
 
-    Optional<Income> findByIdAndUserId(Long id, Long userId);
+    Optional<Income> findByIdAndUserIdIn(Long id, List<Long> userIds);
 
     boolean existsByCategoriaId(Long categoriaId);
 
@@ -27,14 +27,14 @@ public interface IncomeRepository extends JpaRepository<Income, Long> {
 
     @Query("""
             SELECT i FROM Income i
-            WHERE i.user.id = :userId
+            WHERE i.user.id IN :userIds
               AND (CAST(:dataInicio AS date) IS NULL OR i.data >= :dataInicio)
               AND (CAST(:dataFim AS date) IS NULL OR i.data <= :dataFim)
               AND (CAST(:categoriaId AS long) IS NULL OR i.categoria.id = :categoriaId)
               AND (CAST(:contaId AS long) IS NULL OR i.contaBancaria.id = :contaId)
               AND (CAST(:recebida AS boolean) IS NULL OR i.recebida = :recebida)
             """)
-    Page<Income> findAllByFilters(@Param("userId") Long userId,
+    Page<Income> findAllByFilters(@Param("userIds") List<Long> userIds,
                                    @Param("dataInicio") LocalDate dataInicio,
                                    @Param("dataFim") LocalDate dataFim,
                                    @Param("categoriaId") Long categoriaId,
@@ -46,14 +46,14 @@ public interface IncomeRepository extends JpaRepository<Income, Long> {
             SELECT i FROM Income i
             LEFT JOIN FETCH i.categoria
             LEFT JOIN FETCH i.contaBancaria
-            WHERE i.user.id = :userId
+            WHERE i.user.id IN :userIds
               AND (CAST(:dataInicio AS date) IS NULL OR i.data >= :dataInicio)
               AND (CAST(:dataFim AS date) IS NULL OR i.data <= :dataFim)
               AND (CAST(:categoriaId AS long) IS NULL OR i.categoria.id = :categoriaId)
               AND (CAST(:contaId AS long) IS NULL OR i.contaBancaria.id = :contaId)
               AND (CAST(:recebida AS boolean) IS NULL OR i.recebida = :recebida)
             """)
-    List<Income> findAllByFiltersList(@Param("userId") Long userId,
+    List<Income> findAllByFiltersList(@Param("userIds") List<Long> userIds,
                                        @Param("dataInicio") LocalDate dataInicio,
                                        @Param("dataFim") LocalDate dataFim,
                                        @Param("categoriaId") Long categoriaId,
@@ -62,23 +62,23 @@ public interface IncomeRepository extends JpaRepository<Income, Long> {
 
     @Query("""
             SELECT i FROM Income i
-            WHERE i.user.id = :userId AND i.recebida = false AND i.data BETWEEN :dataInicio AND :dataFim
+            WHERE i.user.id IN :userIds AND i.recebida = false AND i.data BETWEEN :dataInicio AND :dataFim
             ORDER BY i.data ASC
             """)
-    List<Income> findAllByUserIdAndRecebidaFalseAndDataBetween(@Param("userId") Long userId,
+    List<Income> findAllByUserIdAndRecebidaFalseAndDataBetween(@Param("userIds") List<Long> userIds,
                                                                  @Param("dataInicio") LocalDate dataInicio,
                                                                  @Param("dataFim") LocalDate dataFim);
 
     @Query("""
             SELECT i FROM Income i
-            WHERE i.user.id = :userId AND i.data BETWEEN :dataInicio AND :dataFim
+            WHERE i.user.id IN :userIds AND i.data BETWEEN :dataInicio AND :dataFim
             """)
-    List<Income> findAllByUserIdAndDataBetween(@Param("userId") Long userId,
+    List<Income> findAllByUserIdAndDataBetween(@Param("userIds") List<Long> userIds,
                                                 @Param("dataInicio") LocalDate dataInicio,
                                                 @Param("dataFim") LocalDate dataFim);
 
-    @Query("SELECT COALESCE(SUM(i.valor), 0) FROM Income i WHERE i.user.id = :userId AND i.data BETWEEN :dataInicio AND :dataFim")
-    BigDecimal sumValorByUserIdAndDataBetween(@Param("userId") Long userId,
+    @Query("SELECT COALESCE(SUM(i.valor), 0) FROM Income i WHERE i.user.id IN :userIds AND i.data BETWEEN :dataInicio AND :dataFim")
+    BigDecimal sumValorByUserIdAndDataBetween(@Param("userIds") List<Long> userIds,
                                                @Param("dataInicio") LocalDate dataInicio,
                                                @Param("dataFim") LocalDate dataFim);
 

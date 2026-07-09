@@ -48,7 +48,7 @@ docker compose up --build
 
 The `web` container (nginx) serves the built React app and proxies `/api/*` calls to the `api` container, so the frontend works out of the box with no extra configuration.
 
-To use the app: open the frontend, click **Cadastre-se** to create a user, then log in.
+To use the app: open the frontend, click the sign-up link to create a user, then log in.
 
 ## 🧪 Local development (without Docker)
 
@@ -97,10 +97,10 @@ Each package is independently runnable and documented — see their READMEs for 
 
 ## 🗺️ Roadmap
 
-- [x] **V1** — Auth, dashboard, receitas, despesas, categorias, contas bancárias, cartões de crédito, transferências, metas financeiras, projeção financeira
-- [ ] **V2** — Parcelamentos, assinaturas recorrentes, contas a pagar/receber, fluxo de caixa
-- [ ] **V3** — Gráficos avançados, simulação financeira, exportação Excel/PDF, metas de investimento
-- [ ] **V4** — Notificações, estrutura para Open Finance, múltiplos usuários, compartilhamento familiar
+- [x] **V1** — Auth, dashboard, income, expenses, categories, bank accounts, credit cards, transfers, financial goals, financial projection
+- [x] **V2** — Installment purchases, recurring subscriptions, bills payable/receivable, cash flow forecast
+- [x] **V3** — Advanced charts, financial simulation, Excel/PDF export, investment goals
+- [x] **V4** — Notifications, Open Finance structure, multiple users, family sharing
 
 ---
 

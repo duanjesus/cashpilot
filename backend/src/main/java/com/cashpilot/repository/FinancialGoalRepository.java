@@ -13,15 +13,15 @@ import java.util.Optional;
 @Repository
 public interface FinancialGoalRepository extends JpaRepository<FinancialGoal, Long> {
 
-    List<FinancialGoal> findAllByUserId(Long userId);
+    List<FinancialGoal> findAllByUserIdIn(List<Long> userIds);
 
-    Optional<FinancialGoal> findByIdAndUserId(Long id, Long userId);
+    Optional<FinancialGoal> findByIdAndUserIdIn(Long id, List<Long> userIds);
 
     @Query("""
             SELECT g FROM FinancialGoal g
-            WHERE g.user.id = :userId AND g.ativa = true AND g.dataAlvo >= :hoje
+            WHERE g.user.id IN :userIds AND g.ativa = true AND g.dataAlvo >= :hoje
             ORDER BY g.dataAlvo ASC
             """)
-    List<FinancialGoal> findActiveOrderedByNearestDataAlvo(@Param("userId") Long userId, @Param("hoje") LocalDate hoje);
+    List<FinancialGoal> findActiveOrderedByNearestDataAlvo(@Param("userIds") List<Long> userIds, @Param("hoje") LocalDate hoje);
 
 }

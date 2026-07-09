@@ -28,7 +28,7 @@ public class RelatorioServiceImpl implements RelatorioService {
 
     @Override
     public List<RelatorioMensalDTO> getRelatorioMensal(int meses) {
-        Long userId = currentUserProvider.getCurrentUserId();
+        List<Long> scopeUserIds = currentUserProvider.getScopeUserIds();
 
         List<RelatorioMensalDTO> relatorios = new ArrayList<>();
         for (int i = meses - 1; i >= 0; i--) {
@@ -36,9 +36,9 @@ public class RelatorioServiceImpl implements RelatorioService {
             LocalDate primeiroDia = mes.withDayOfMonth(1);
             LocalDate ultimoDia = mes.withDayOfMonth(mes.lengthOfMonth());
 
-            BigDecimal entradas = incomeRepository.sumValorByUserIdAndDataBetween(userId, primeiroDia, ultimoDia);
-            BigDecimal saidas = expenseRepository.sumValorByUserIdAndDataBetween(userId, primeiroDia, ultimoDia);
-            BigDecimal investimentos = expenseRepository.sumValorByUserIdAndDataBetweenAndCategoriaIsInvestment(userId, primeiroDia, ultimoDia);
+            BigDecimal entradas = incomeRepository.sumValorByUserIdAndDataBetween(scopeUserIds, primeiroDia, ultimoDia);
+            BigDecimal saidas = expenseRepository.sumValorByUserIdAndDataBetween(scopeUserIds, primeiroDia, ultimoDia);
+            BigDecimal investimentos = expenseRepository.sumValorByUserIdAndDataBetweenAndCategoriaIsInvestment(scopeUserIds, primeiroDia, ultimoDia);
             BigDecimal saldoLiquido = entradas.subtract(saidas);
 
             relatorios.add(new RelatorioMensalDTO(mes.format(ANO_MES_FORMATTER), entradas, saidas, investimentos, saldoLiquido));

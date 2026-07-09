@@ -38,6 +38,7 @@ public class IncomeServiceImpl implements IncomeService {
 
     @Override
     public IncomeResponseDTO create(IncomeRequestDTO dto) {
+        currentUserProvider.requireWriteAccess();
         User user = currentUserProvider.getCurrentUser();
         Category categoria = resolveCategoria(dto.categoriaId(), user.getId());
         BankAccount contaBancaria = resolveContaBancaria(dto.contaBancariaId(), user.getId());
@@ -61,6 +62,7 @@ public class IncomeServiceImpl implements IncomeService {
 
     @Override
     public IncomeResponseDTO update(Long id, IncomeRequestDTO dto) {
+        currentUserProvider.requireWriteAccess();
         Income income = findOwnedEntityById(id);
         Category categoria = resolveCategoria(dto.categoriaId(), income.getUser().getId());
         BankAccount contaBancaria = resolveContaBancaria(dto.contaBancariaId(), income.getUser().getId());
@@ -85,6 +87,7 @@ public class IncomeServiceImpl implements IncomeService {
 
     @Override
     public void delete(Long id) {
+        currentUserProvider.requireWriteAccess();
         Income income = findOwnedEntityById(id);
         incomeRepository.delete(income);
     }
@@ -98,13 +101,14 @@ public class IncomeServiceImpl implements IncomeService {
     @Override
     @Transactional(readOnly = true)
     public Page<IncomeResponseDTO> findAll(LocalDate dataInicio, LocalDate dataFim, Long categoriaId, Long contaId, Boolean recebida, Pageable pageable) {
-        Long userId = currentUserProvider.getCurrentUserId();
-        return incomeRepository.findAllByFilters(userId, dataInicio, dataFim, categoriaId, contaId, recebida, pageable)
+        List<Long> scopeUserIds = currentUserProvider.getScopeUserIds();
+        return incomeRepository.findAllByFilters(scopeUserIds, dataInicio, dataFim, categoriaId, contaId, recebida, pageable)
                 .map(incomeMapper::toResponseDto);
     }
 
     @Override
     public IncomeResponseDTO markAsReceived(Long id, MarkIncomeReceivedRequestDTO dto) {
+        currentUserProvider.requireWriteAccess();
         Income income = findOwnedEntityById(id);
         income.setRecebida(true);
         income.setDataRecebimento(dto == null || dto.dataRecebimento() == null ? LocalDate.now() : dto.dataRecebimento());
@@ -116,13 +120,14 @@ public class IncomeServiceImpl implements IncomeService {
     @Override
     @Transactional(readOnly = true)
     public List<Income> findAllForExport(LocalDate dataInicio, LocalDate dataFim, Long categoriaId, Long contaId, Boolean recebida) {
-        Long userId = currentUserProvider.getCurrentUserId();
-        return incomeRepository.findAllByFiltersList(userId, dataInicio, dataFim, categoriaId, contaId, recebida);
+        List<Long> scopeUserIds = currentUserProvider.getScopeUserIds();
+        return incomeRepository.findAllByFiltersList(scopeUserIds, dataInicio, dataFim, categoriaId, contaId, recebida);
     }
 
     private Category resolveCategoria(Long categoriaId, Long userId) {
+        List<Long> scopeUserIds = currentUserProvider.getScopeUserIds();
         Category categoria = categoryRepository.findById(categoriaId)
-                .filter(c -> c.getUser() == null || c.getUser().getId().equals(userId))
+                .filter(c -> c.getUser() == null || scopeUserIds.contains(c.getUser().getId()))
                 .orElseThrow(() -> ResourceNotFoundException.of("Categoria", categoriaId));
 
         if (categoria.getTipo() != CategoryType.RECEITA && categoria.getTipo() != CategoryType.AMBOS) {
@@ -132,13 +137,13 @@ public class IncomeServiceImpl implements IncomeService {
     }
 
     private BankAccount resolveContaBancaria(Long contaId, Long userId) {
-        return bankAccountRepository.findByIdAndUserId(contaId, userId)
+        return bankAccountRepository.findByIdAndUserIdIn(contaId, currentUserProvider.getScopeUserIds())
                 .orElseThrow(() -> ResourceNotFoundException.of("Conta bancária", contaId));
     }
 
     private Income findOwnedEntityById(Long id) {
-        Long userId = currentUserProvider.getCurrentUserId();
-        return incomeRepository.findByIdAndUserId(id, userId)
+        List<Long> scopeUserIds = currentUserProvider.getScopeUserIds();
+        return incomeRepository.findByIdAndUserIdIn(id, scopeUserIds)
                 .orElseThrow(() -> ResourceNotFoundException.of("Receita", id));
     }
 

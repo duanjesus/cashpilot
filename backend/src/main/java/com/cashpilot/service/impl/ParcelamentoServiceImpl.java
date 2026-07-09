@@ -45,6 +45,7 @@ public class ParcelamentoServiceImpl implements ParcelamentoService {
 
     @Override
     public ParcelamentoResponseDTO create(ParcelamentoRequestDTO dto) {
+        currentUserProvider.requireWriteAccess();
         User user = currentUserProvider.getCurrentUser();
         validateFormaPagamento(dto.contaBancariaId(), dto.cartaoCreditoId());
 
@@ -74,6 +75,7 @@ public class ParcelamentoServiceImpl implements ParcelamentoService {
 
     @Override
     public void delete(Long id) {
+        currentUserProvider.requireWriteAccess();
         Parcelamento parcelamento = findOwnedEntityById(id);
 
         if (expenseRepository.existsByParcelamentoIdAndPagaTrue(id)) {
@@ -95,8 +97,8 @@ public class ParcelamentoServiceImpl implements ParcelamentoService {
     @Override
     @Transactional(readOnly = true)
     public Page<ParcelamentoResponseDTO> findAll(Pageable pageable) {
-        Long userId = currentUserProvider.getCurrentUserId();
-        return parcelamentoRepository.findAllByUserId(userId, pageable)
+        List<Long> scopeUserIds = currentUserProvider.getScopeUserIds();
+        return parcelamentoRepository.findAllByUserIdIn(scopeUserIds, pageable)
                 .map(p -> toResponseWithProgresso(p, expenseRepository.findAllByParcelamentoId(p.getId())));
     }
 
@@ -171,8 +173,9 @@ public class ParcelamentoServiceImpl implements ParcelamentoService {
     }
 
     private Category resolveCategoria(Long categoriaId, Long userId) {
+        List<Long> scopeUserIds = currentUserProvider.getScopeUserIds();
         Category categoria = categoryRepository.findById(categoriaId)
-                .filter(c -> c.getUser() == null || c.getUser().getId().equals(userId))
+                .filter(c -> c.getUser() == null || scopeUserIds.contains(c.getUser().getId()))
                 .orElseThrow(() -> ResourceNotFoundException.of("Categoria", categoriaId));
 
         if (categoria.getTipo() != CategoryType.DESPESA && categoria.getTipo() != CategoryType.AMBOS) {
@@ -185,7 +188,7 @@ public class ParcelamentoServiceImpl implements ParcelamentoService {
         if (contaId == null) {
             return null;
         }
-        return bankAccountRepository.findByIdAndUserId(contaId, userId)
+        return bankAccountRepository.findByIdAndUserIdIn(contaId, currentUserProvider.getScopeUserIds())
                 .orElseThrow(() -> ResourceNotFoundException.of("Conta bancária", contaId));
     }
 
@@ -193,13 +196,13 @@ public class ParcelamentoServiceImpl implements ParcelamentoService {
         if (cartaoId == null) {
             return null;
         }
-        return creditCardRepository.findByIdAndUserId(cartaoId, userId)
+        return creditCardRepository.findByIdAndUserIdIn(cartaoId, currentUserProvider.getScopeUserIds())
                 .orElseThrow(() -> ResourceNotFoundException.of("Cartão de crédito", cartaoId));
     }
 
     private Parcelamento findOwnedEntityById(Long id) {
-        Long userId = currentUserProvider.getCurrentUserId();
-        return parcelamentoRepository.findByIdAndUserId(id, userId)
+        List<Long> scopeUserIds = currentUserProvider.getScopeUserIds();
+        return parcelamentoRepository.findByIdAndUserIdIn(id, scopeUserIds)
                 .orElseThrow(() -> ResourceNotFoundException.of("Parcelamento", id));
     }
 

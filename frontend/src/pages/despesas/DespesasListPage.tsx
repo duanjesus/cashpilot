@@ -4,6 +4,7 @@ import { useCategories } from "@/hooks/useCategories";
 import { useBankAccounts } from "@/hooks/useBankAccounts";
 import { useCreditCards } from "@/hooks/useCreditCards";
 import { useDeleteExpense, useExpenses, useMarkExpensePaid } from "@/hooks/useExpenses";
+import { useMyFamilyGroup } from "@/hooks/useFamilyGroup";
 import { usePaginationState } from "@/hooks/usePaginationState";
 import { api, extractErrorMessage } from "@/lib/api";
 import type { Expense, ExpenseFilters } from "@/types/expense";
@@ -35,6 +36,8 @@ export function DespesasListPage({ initialFilters, initialSort, title, descripti
   const { data: categories } = useCategories();
   const { data: accounts } = useBankAccounts();
   const { data: cards } = useCreditCards();
+  const { data: familyGroup } = useMyFamilyGroup();
+  const isViewer = familyGroup?.papelDoUsuarioAtual === "VIEWER";
   const { data, isLoading, isError } = useExpenses({
     page,
     size,
@@ -123,7 +126,9 @@ export function DespesasListPage({ initialFilters, initialSort, title, descripti
           <Button variant="secondary" isLoading={isExporting} onClick={() => handleExport("pdf")}>
             Exportar PDF
           </Button>
-          <Button onClick={() => setModalState({ open: true, expense: null })}>+ Nova despesa</Button>
+          {!isViewer && (
+            <Button onClick={() => setModalState({ open: true, expense: null })}>+ Nova despesa</Button>
+          )}
         </div>
       </div>
 

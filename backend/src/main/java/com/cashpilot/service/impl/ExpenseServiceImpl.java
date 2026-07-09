@@ -41,6 +41,7 @@ public class ExpenseServiceImpl implements ExpenseService {
 
     @Override
     public ExpenseResponseDTO create(ExpenseRequestDTO dto) {
+        currentUserProvider.requireWriteAccess();
         User user = currentUserProvider.getCurrentUser();
         validateFormaPagamento(dto.contaBancariaId(), dto.cartaoCreditoId());
 
@@ -67,6 +68,7 @@ public class ExpenseServiceImpl implements ExpenseService {
 
     @Override
     public ExpenseResponseDTO update(Long id, ExpenseRequestDTO dto) {
+        currentUserProvider.requireWriteAccess();
         Expense expense = findOwnedEntityById(id);
         validateFormaPagamento(dto.contaBancariaId(), dto.cartaoCreditoId());
 
@@ -93,6 +95,7 @@ public class ExpenseServiceImpl implements ExpenseService {
 
     @Override
     public void delete(Long id) {
+        currentUserProvider.requireWriteAccess();
         Expense expense = findOwnedEntityById(id);
         expenseRepository.delete(expense);
     }
@@ -107,13 +110,14 @@ public class ExpenseServiceImpl implements ExpenseService {
     @Transactional(readOnly = true)
     public Page<ExpenseResponseDTO> findAll(LocalDate dataInicio, LocalDate dataFim, Long categoriaId, Long contaId,
                                              Long cartaoId, Boolean paga, Pageable pageable) {
-        Long userId = currentUserProvider.getCurrentUserId();
-        return expenseRepository.findAllByFilters(userId, dataInicio, dataFim, categoriaId, contaId, cartaoId, paga, pageable)
+        List<Long> scopeUserIds = currentUserProvider.getScopeUserIds();
+        return expenseRepository.findAllByFilters(scopeUserIds, dataInicio, dataFim, categoriaId, contaId, cartaoId, paga, pageable)
                 .map(expenseMapper::toResponseDto);
     }
 
     @Override
     public ExpenseResponseDTO markAsPaid(Long id, MarkExpensePaidRequestDTO dto) {
+        currentUserProvider.requireWriteAccess();
         Expense expense = findOwnedEntityById(id);
         expense.setPaga(true);
         expense.setDataPagamento(dto == null || dto.dataPagamento() == null ? LocalDate.now() : dto.dataPagamento());
@@ -126,8 +130,8 @@ public class ExpenseServiceImpl implements ExpenseService {
     @Transactional(readOnly = true)
     public List<Expense> findAllForExport(LocalDate dataInicio, LocalDate dataFim, Long categoriaId, Long contaId,
                                            Long cartaoId, Boolean paga) {
-        Long userId = currentUserProvider.getCurrentUserId();
-        return expenseRepository.findAllByFiltersList(userId, dataInicio, dataFim, categoriaId, contaId, cartaoId, paga);
+        List<Long> scopeUserIds = currentUserProvider.getScopeUserIds();
+        return expenseRepository.findAllByFiltersList(scopeUserIds, dataInicio, dataFim, categoriaId, contaId, cartaoId, paga);
     }
 
     private void validateFormaPagamento(Long contaBancariaId, Long cartaoCreditoId) {
@@ -139,8 +143,9 @@ public class ExpenseServiceImpl implements ExpenseService {
     }
 
     private Category resolveCategoria(Long categoriaId, Long userId) {
+        List<Long> scopeUserIds = currentUserProvider.getScopeUserIds();
         Category categoria = categoryRepository.findById(categoriaId)
-                .filter(c -> c.getUser() == null || c.getUser().getId().equals(userId))
+                .filter(c -> c.getUser() == null || scopeUserIds.contains(c.getUser().getId()))
                 .orElseThrow(() -> ResourceNotFoundException.of("Categoria", categoriaId));
 
         if (categoria.getTipo() != CategoryType.DESPESA && categoria.getTipo() != CategoryType.AMBOS) {
@@ -153,7 +158,7 @@ public class ExpenseServiceImpl implements ExpenseService {
         if (contaId == null) {
             return null;
         }
-        return bankAccountRepository.findByIdAndUserId(contaId, userId)
+        return bankAccountRepository.findByIdAndUserIdIn(contaId, currentUserProvider.getScopeUserIds())
                 .orElseThrow(() -> ResourceNotFoundException.of("Conta bancária", contaId));
     }
 
@@ -161,13 +166,13 @@ public class ExpenseServiceImpl implements ExpenseService {
         if (cartaoId == null) {
             return null;
         }
-        return creditCardRepository.findByIdAndUserId(cartaoId, userId)
+        return creditCardRepository.findByIdAndUserIdIn(cartaoId, currentUserProvider.getScopeUserIds())
                 .orElseThrow(() -> ResourceNotFoundException.of("Cartão de crédito", cartaoId));
     }
 
     private Expense findOwnedEntityById(Long id) {
-        Long userId = currentUserProvider.getCurrentUserId();
-        return expenseRepository.findByIdAndUserId(id, userId)
+        List<Long> scopeUserIds = currentUserProvider.getScopeUserIds();
+        return expenseRepository.findByIdAndUserIdIn(id, scopeUserIds)
                 .orElseThrow(() -> ResourceNotFoundException.of("Despesa", id));
     }
 

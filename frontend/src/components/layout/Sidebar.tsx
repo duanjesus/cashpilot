@@ -18,6 +18,9 @@ const NAV_ITEMS: { to: string; label: string; end?: boolean }[] = [
   { to: "/relatorios", label: "Gráficos" },
   { to: "/previsao-saldo", label: "Previsão de saldo" },
   { to: "/simulacao", label: "Simulação" },
+  { to: "/grupo-familiar", label: "Grupo familiar" },
+  { to: "/notificacoes", label: "Notificações" },
+  { to: "/open-finance", label: "Open Finance" },
 ];
 
 export function Sidebar() {

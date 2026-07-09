@@ -84,8 +84,9 @@ class ParcelamentoServiceImplTest {
                 BigDecimal.valueOf(100), 3, LocalDate.of(2026, 1, 10), null);
 
         when(currentUserProvider.getCurrentUser()).thenReturn(user);
+        when(currentUserProvider.getScopeUserIds()).thenReturn(List.of(1L));
         when(categoryRepository.findById(2L)).thenReturn(Optional.of(categoria));
-        when(bankAccountRepository.findByIdAndUserId(3L, 1L)).thenReturn(Optional.of(conta));
+        when(bankAccountRepository.findByIdAndUserIdIn(3L, List.of(1L))).thenReturn(Optional.of(conta));
         when(parcelamentoRepository.save(any(Parcelamento.class))).thenAnswer(inv -> {
             Parcelamento p = inv.getArgument(0);
             p.setId(10L);
@@ -118,8 +119,8 @@ class ParcelamentoServiceImplTest {
                 .contaBancaria(conta).descricao("Notebook").valorTotal(BigDecimal.valueOf(100))
                 .numeroParcelas(3).dataPrimeiraParcela(LocalDate.of(2026, 1, 10)).build();
 
-        when(currentUserProvider.getCurrentUserId()).thenReturn(1L);
-        when(parcelamentoRepository.findByIdAndUserId(20L, 1L)).thenReturn(Optional.of(parcelamento));
+        when(currentUserProvider.getScopeUserIds()).thenReturn(List.of(1L));
+        when(parcelamentoRepository.findByIdAndUserIdIn(20L, List.of(1L))).thenReturn(Optional.of(parcelamento));
         when(expenseRepository.existsByParcelamentoIdAndPagaTrue(20L)).thenReturn(true);
 
         assertThatThrownBy(() -> parcelamentoService.delete(20L))
@@ -140,8 +141,8 @@ class ParcelamentoServiceImplTest {
                 Expense.builder().id(32L).parcelamento(parcelamento).paga(false).valor(BigDecimal.valueOf(33.34)).build()
         );
 
-        when(currentUserProvider.getCurrentUserId()).thenReturn(1L);
-        when(parcelamentoRepository.findByIdAndUserId(21L, 1L)).thenReturn(Optional.of(parcelamento));
+        when(currentUserProvider.getScopeUserIds()).thenReturn(List.of(1L));
+        when(parcelamentoRepository.findByIdAndUserIdIn(21L, List.of(1L))).thenReturn(Optional.of(parcelamento));
         when(expenseRepository.existsByParcelamentoIdAndPagaTrue(21L)).thenReturn(false);
         when(expenseRepository.findAllByParcelamentoId(21L)).thenReturn(parcelas);
 

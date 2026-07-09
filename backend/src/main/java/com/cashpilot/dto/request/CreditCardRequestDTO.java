@@ -1,6 +1,7 @@
 package com.cashpilot.dto.request;
 
 import com.cashpilot.entity.enums.CardBrand;
+import com.cashpilot.entity.enums.ContaOrigem;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -33,7 +34,12 @@ public record CreditCardRequestDTO(
 
         Long contaVinculadaId,
 
-        Boolean ativo
+        Boolean ativo,
+
+        ContaOrigem origem,
+
+        @Size(max = 150, message = "A instituição de origem deve ter no máximo 150 caracteres")
+        String instituicaoNome
 
 ) {
 }

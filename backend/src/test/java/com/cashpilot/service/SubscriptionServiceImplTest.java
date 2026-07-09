@@ -82,13 +82,13 @@ class SubscriptionServiceImplTest {
     @Test
     @DisplayName("gerarPendentes() só processa assinaturas ativas do usuário autenticado")
     void deveProcessarApenasAssinaturasDoUsuarioAtual() {
-        when(currentUserProvider.getCurrentUserId()).thenReturn(1L);
-        when(subscriptionRepository.findAllByUserIdAndAtivaTrue(1L)).thenReturn(List.of());
+        when(currentUserProvider.getScopeUserIds()).thenReturn(List.of(1L));
+        when(subscriptionRepository.findAllByUserIdInAndAtivaTrue(List.of(1L))).thenReturn(List.of());
 
         List<ExpenseResponseDTO> result = subscriptionService.gerarPendentes();
 
         assertThat(result).isEmpty();
-        verify(subscriptionRepository).findAllByUserIdAndAtivaTrue(1L);
+        verify(subscriptionRepository).findAllByUserIdInAndAtivaTrue(List.of(1L));
         verify(subscriptionRepository, never()).findAllByAtivaTrue();
     }
 

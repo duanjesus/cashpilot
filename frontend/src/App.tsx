@@ -21,6 +21,9 @@ import { ContasAReceberPage } from "@/pages/contas-a-receber/ContasAReceberPage"
 import { RelatoriosPage } from "@/pages/relatorios/RelatoriosPage";
 import { PrevisaoSaldoPage } from "@/pages/previsao-saldo/PrevisaoSaldoPage";
 import { SimulacaoPage } from "@/pages/simulacao/SimulacaoPage";
+import { GrupoFamiliarPage } from "@/pages/grupo-familiar/GrupoFamiliarPage";
+import { NotificacoesPage } from "@/pages/notificacoes/NotificacoesPage";
+import { OpenFinancePage } from "@/pages/open-finance/OpenFinancePage";
 
 export default function App() {
   return (
@@ -47,6 +50,9 @@ export default function App() {
           <Route path="/relatorios" element={<RelatoriosPage />} />
           <Route path="/previsao-saldo" element={<PrevisaoSaldoPage />} />
           <Route path="/simulacao" element={<SimulacaoPage />} />
+          <Route path="/grupo-familiar" element={<GrupoFamiliarPage />} />
+          <Route path="/notificacoes" element={<NotificacoesPage />} />
+          <Route path="/open-finance" element={<OpenFinancePage />} />
         </Route>
       </Route>
 

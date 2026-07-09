@@ -144,12 +144,12 @@ Tests are pure unit tests (JUnit 5 + Mockito + AssertJ against mocked repositori
 
 ```
 saldoAtual = saldoInicial
-           + SUM(Income.valor WHERE contaBancaria = esta conta)
-           - SUM(Expense.valor WHERE contaBancaria = esta conta)
-           - SUM(Transfer.valor WHERE contaOrigem = esta conta)
-           + SUM(Transfer.valor WHERE contaDestino = esta conta)
+           + SUM(Income.valor WHERE contaBancaria = this account)
+           - SUM(Expense.valor WHERE contaBancaria = this account)
+           - SUM(Transfer.valor WHERE contaOrigem = this account)
+           + SUM(Transfer.valor WHERE contaDestino = this account)
 
-faturaAtual = SUM(Expense.valor WHERE cartaoCredito = este cartão AND paga = false)
+faturaAtual = SUM(Expense.valor WHERE cartaoCredito = this card AND paga = false)
 ```
 
 Credit-card expenses never reduce a bank account's balance in V1 — only paying off the card (or manually marking the expense `paga`) does. Deleting a `BankAccount`/`CreditCard` is blocked (`BusinessException`, HTTP 422) while it's still referenced by any Income/Expense/Transfer, the same "no raw FK violation" rule used by `Category`.
@@ -167,148 +167,188 @@ Every endpoint below (except `/api/v1/auth/**` and Swagger) requires a valid JWT
 | POST   | `/api/v1/auth/register`  | Self-register a new user                |
 | POST   | `/api/v1/auth/login`     | Authenticate and receive a JWT token    |
 
-### Categorias — `/api/v1/categorias`
+### Categories — `/api/v1/categorias`
 
 | Method | Route                          | Description                                          |
 |--------|----------------------------------|--------------------------------------------------------|
-| POST   | `/api/v1/categorias`            | Cadastrar categoria própria                             |
-| PUT    | `/api/v1/categorias/{id}`       | Editar categoria própria                                |
-| DELETE | `/api/v1/categorias/{id}`       | Excluir categoria própria (bloqueado se em uso)         |
-| GET    | `/api/v1/categorias/{id}`       | Buscar categoria por ID                                 |
-| GET    | `/api/v1/categorias`            | Listar categorias (próprias + padrão do sistema)        |
+| POST   | `/api/v1/categorias`            | Create a custom category                                |
+| PUT    | `/api/v1/categorias/{id}`       | Edit a custom category                                  |
+| DELETE | `/api/v1/categorias/{id}`       | Delete a custom category (blocked while in use)         |
+| GET    | `/api/v1/categorias/{id}`       | Get a category by id                                    |
+| GET    | `/api/v1/categorias`            | List categories (custom + system defaults)              |
 
-### Contas Bancárias — `/api/v1/contas`
+### Bank Accounts — `/api/v1/contas`
 
 | Method | Route                     | Description                                  |
 |--------|----------------------------|-------------------------------------------------|
-| POST   | `/api/v1/contas`           | Cadastrar conta bancária                        |
-| PUT    | `/api/v1/contas/{id}`      | Editar conta bancária                            |
-| DELETE | `/api/v1/contas/{id}`      | Excluir conta bancária (bloqueado se em uso)     |
-| GET    | `/api/v1/contas/{id}`      | Buscar conta bancária por ID (com `saldoAtual`)  |
-| GET    | `/api/v1/contas`           | Listar contas bancárias do usuário                |
+| POST   | `/api/v1/contas`           | Create a bank account                           |
+| PUT    | `/api/v1/contas/{id}`      | Edit a bank account                              |
+| DELETE | `/api/v1/contas/{id}`      | Delete a bank account (blocked while in use)     |
+| GET    | `/api/v1/contas/{id}`      | Get a bank account by id (with `saldoAtual`)     |
+| GET    | `/api/v1/contas`           | List the user's bank accounts                     |
 
-### Cartões de Crédito — `/api/v1/cartoes`
+### Credit Cards — `/api/v1/cartoes`
 
 | Method | Route                      | Description                                     |
 |--------|-----------------------------|-----------------------------------------------------|
-| POST   | `/api/v1/cartoes`           | Cadastrar cartão de crédito                        |
-| PUT    | `/api/v1/cartoes/{id}`      | Editar cartão de crédito                            |
-| DELETE | `/api/v1/cartoes/{id}`      | Excluir cartão de crédito (bloqueado se em uso)     |
-| GET    | `/api/v1/cartoes/{id}`      | Buscar cartão de crédito por ID (com `faturaAtual`) |
-| GET    | `/api/v1/cartoes`           | Listar cartões de crédito do usuário                 |
+| POST   | `/api/v1/cartoes`           | Create a credit card                                |
+| PUT    | `/api/v1/cartoes/{id}`      | Edit a credit card                                   |
+| DELETE | `/api/v1/cartoes/{id}`      | Delete a credit card (blocked while in use)          |
+| GET    | `/api/v1/cartoes/{id}`      | Get a credit card by id (with `faturaAtual`)         |
+| GET    | `/api/v1/cartoes`           | List the user's credit cards                         |
 
-### Receitas — `/api/v1/receitas`
+### Income — `/api/v1/receitas`
 
 | Method | Route                      | Description                                                                  |
 |--------|-----------------------------|----------------------------------------------------------------------------------|
-| POST   | `/api/v1/receitas`           | Cadastrar receita                                                                |
-| PUT    | `/api/v1/receitas/{id}`      | Editar receita                                                                    |
-| DELETE | `/api/v1/receitas/{id}`      | Excluir receita                                                                    |
-| GET    | `/api/v1/receitas/{id}`      | Buscar receita por ID                                                              |
-| GET    | `/api/v1/receitas`           | Listar receitas (paginado; filtros opcionais `dataInicio`, `dataFim`, `categoriaId`, `contaId`, `recebida`) |
-| PATCH  | `/api/v1/receitas/{id}/receber` | Marcar receita como recebida (`dataRecebimento` opcional no corpo, padrão hoje)             |
+| POST   | `/api/v1/receitas`           | Create an income entry                                                          |
+| PUT    | `/api/v1/receitas/{id}`      | Edit an income entry                                                              |
+| DELETE | `/api/v1/receitas/{id}`      | Delete an income entry                                                            |
+| GET    | `/api/v1/receitas/{id}`      | Get an income entry by id                                                          |
+| GET    | `/api/v1/receitas`           | List income entries (paginated; optional filters `dataInicio`, `dataFim`, `categoriaId`, `contaId`, `recebida`) |
+| PATCH  | `/api/v1/receitas/{id}/receber` | Mark an income entry as received (optional `dataRecebimento` in the body, defaults to today) |
 
-### Despesas — `/api/v1/despesas`
+### Expenses — `/api/v1/despesas`
 
 | Method | Route                            | Description                                                                                     |
 |--------|------------------------------------|------------------------------------------------------------------------------------------------------|
-| POST   | `/api/v1/despesas`                 | Cadastrar despesa (exatamente uma de `contaBancariaId`/`cartaoCreditoId`)                            |
-| PUT    | `/api/v1/despesas/{id}`            | Editar despesa                                                                                        |
-| DELETE | `/api/v1/despesas/{id}`            | Excluir despesa                                                                                        |
-| GET    | `/api/v1/despesas/{id}`            | Buscar despesa por ID                                                                                  |
-| GET    | `/api/v1/despesas`                 | Listar despesas (paginado; filtros opcionais `dataInicio`, `dataFim`, `categoriaId`, `contaId`, `cartaoId`, `paga`) |
-| PATCH  | `/api/v1/despesas/{id}/pagar`      | Marcar despesa como paga (`dataPagamento` opcional no corpo, padrão hoje)                             |
+| POST   | `/api/v1/despesas`                 | Create an expense (exactly one of `contaBancariaId`/`cartaoCreditoId`)                               |
+| PUT    | `/api/v1/despesas/{id}`            | Edit an expense                                                                                       |
+| DELETE | `/api/v1/despesas/{id}`            | Delete an expense                                                                                     |
+| GET    | `/api/v1/despesas/{id}`            | Get an expense by id                                                                                   |
+| GET    | `/api/v1/despesas`                 | List expenses (paginated; optional filters `dataInicio`, `dataFim`, `categoriaId`, `contaId`, `cartaoId`, `paga`) |
+| PATCH  | `/api/v1/despesas/{id}/pagar`      | Mark an expense as paid (optional `dataPagamento` in the body, defaults to today)                     |
 
-### Parcelamentos — `/api/v1/parcelamentos`
+### Installment Purchases — `/api/v1/parcelamentos`
 
-Cadastrar um parcelamento gera automaticamente as despesas de todas as parcelas (dividindo `valorTotal` igualmente, com o resto de arredondamento na última parcela). Não há edição — corrija excluindo e recadastrando.
+Creating an installment purchase automatically generates the expense rows for every installment (splitting `valorTotal` evenly, with the rounding remainder on the last installment). There's no edit — fix a mistake by deleting and re-creating.
 
 | Method | Route                              | Description                                                                                     |
 |--------|--------------------------------------|------------------------------------------------------------------------------------------------------|
-| POST   | `/api/v1/parcelamentos`              | Cadastrar parcelamento (gera as despesas das parcelas automaticamente)                              |
-| DELETE | `/api/v1/parcelamentos/{id}`         | Excluir parcelamento (bloqueado se houver parcelas já pagas)                                          |
-| GET    | `/api/v1/parcelamentos/{id}`         | Buscar parcelamento por ID (com progresso: `parcelasPagas`, `valorPago`, `valorRestante`, `quitado`) |
-| GET    | `/api/v1/parcelamentos`              | Listar parcelamentos (paginado)                                                                       |
+| POST   | `/api/v1/parcelamentos`              | Create an installment purchase (auto-generates the installment expenses)                            |
+| DELETE | `/api/v1/parcelamentos/{id}`         | Delete an installment purchase (blocked if any installment is already paid)                          |
+| GET    | `/api/v1/parcelamentos/{id}`         | Get an installment purchase by id (with progress: `parcelasPagas`, `valorPago`, `valorRestante`, `quitado`) |
+| GET    | `/api/v1/parcelamentos`              | List installment purchases (paginated)                                                               |
 
-### Assinaturas — `/api/v1/assinaturas`
+### Subscriptions — `/api/v1/assinaturas`
 
-Assinaturas recorrentes geram despesas mensais automaticamente (cron diário, 02:00) ou sob demanda via `/gerar-pendentes`. A geração é idempotente por `(assinaturaId, referenciaMes)` — rodar duas vezes no mesmo mês nunca duplica a cobrança.
+Recurring subscriptions generate monthly expenses automatically (daily cron at 02:00) or on demand via `/gerar-pendentes`. Generation is idempotent per `(assinaturaId, referenciaMes)` — running it twice in the same month never duplicates the charge.
 
 | Method | Route                                   | Description                                                          |
 |--------|--------------------------------------------|----------------------------------------------------------------------|
-| POST   | `/api/v1/assinaturas`                      | Cadastrar assinatura recorrente                                       |
-| PUT    | `/api/v1/assinaturas/{id}`                 | Editar assinatura recorrente                                          |
-| DELETE | `/api/v1/assinaturas/{id}`                 | Excluir assinatura (despesas já geradas são preservadas)              |
-| GET    | `/api/v1/assinaturas/{id}`                 | Buscar assinatura por ID                                              |
-| GET    | `/api/v1/assinaturas`                      | Listar assinaturas do usuário                                         |
-| POST   | `/api/v1/assinaturas/gerar-pendentes`      | Gerar manualmente as cobranças pendentes das assinaturas ativas       |
+| POST   | `/api/v1/assinaturas`                      | Create a recurring subscription                                       |
+| PUT    | `/api/v1/assinaturas/{id}`                 | Edit a recurring subscription                                         |
+| DELETE | `/api/v1/assinaturas/{id}`                 | Delete a subscription (already-generated expenses are preserved)      |
+| GET    | `/api/v1/assinaturas/{id}`                 | Get a subscription by id                                              |
+| GET    | `/api/v1/assinaturas`                      | List the user's subscriptions                                         |
+| POST   | `/api/v1/assinaturas/gerar-pendentes`      | Manually generate pending charges for active subscriptions            |
 
-### Fluxo de Caixa — `/api/v1/fluxo-caixa`
+### Cash Flow — `/api/v1/fluxo-caixa`
 
 | Method | Route                       | Description                                                                                                    |
 |--------|-------------------------------|----------------------------------------------------------------------------------------------------------------------|
-| GET    | `/api/v1/fluxo-caixa`          | Projeção de saldo futuro (`?dias=`, padrão 30) combinando despesas/receitas pendentes e cobranças de assinaturas ainda não geradas |
+| GET    | `/api/v1/fluxo-caixa`          | Forward-looking balance projection (`?dias=`, default 30) combining pending expenses/income and not-yet-generated subscription charges |
 
-### Transferências — `/api/v1/transferencias`
+### Transfers — `/api/v1/transferencias`
 
-Append-only: só é possível registrar, listar e excluir — não há edição.
+Append-only: you can only create, list and delete — there's no edit.
 
 | Method | Route                              | Description                        |
 |--------|--------------------------------------|----------------------------------------|
-| POST   | `/api/v1/transferencias`             | Registrar transferência entre contas   |
-| DELETE | `/api/v1/transferencias/{id}`        | Excluir transferência                   |
-| GET    | `/api/v1/transferencias/{id}`        | Buscar transferência por ID             |
-| GET    | `/api/v1/transferencias`             | Listar transferências (paginado)        |
+| POST   | `/api/v1/transferencias`             | Record a transfer between accounts     |
+| DELETE | `/api/v1/transferencias/{id}`        | Delete a transfer                       |
+| GET    | `/api/v1/transferencias/{id}`        | Get a transfer by id                    |
+| GET    | `/api/v1/transferencias`             | List transfers (paginated)              |
 
-### Metas Financeiras — `/api/v1/metas`
+### Financial Goals — `/api/v1/metas`
 
 | Method | Route                             | Description                                          |
-|--------|-------------------------------------|----------------------------------------------------------|
-| POST   | `/api/v1/metas`                     | Cadastrar meta financeira                                |
-| PUT    | `/api/v1/metas/{id}`                | Editar meta financeira                                    |
-| PATCH  | `/api/v1/metas/{id}/progresso`      | Atualizar o valor atual (progresso) da meta               |
-| DELETE | `/api/v1/metas/{id}`                | Excluir meta financeira                                    |
-| GET    | `/api/v1/metas/{id}`                | Buscar meta financeira por ID (com `progresso` 0–100)      |
-| GET    | `/api/v1/metas`                     | Listar metas financeiras do usuário                        |
+|--------|-------------------------------------|------------------------------------------------------------|
+| POST   | `/api/v1/metas`                     | Create a financial goal                                  |
+| PUT    | `/api/v1/metas/{id}`                | Edit a financial goal                                     |
+| PATCH  | `/api/v1/metas/{id}/progresso`      | Update the goal's current value (progress)                |
+| DELETE | `/api/v1/metas/{id}`                | Delete a financial goal                                    |
+| GET    | `/api/v1/metas/{id}`                | Get a financial goal by id (with `progresso` 0-100)        |
+| GET    | `/api/v1/metas`                     | List the user's financial goals                            |
 
 ### Dashboard — `/api/v1/dashboard`
 
 | Method | Route                              | Description                                                                    |
 |--------|--------------------------------------|-------------------------------------------------------------------------------------|
-| GET    | `/api/v1/dashboard/resumo`           | Saldo atual total, entradas/saídas/investimentos do mês, meta principal, próximas contas |
-| GET    | `/api/v1/dashboard/evolucao-saldo`   | Série de fluxo de caixa acumulado (aproximação) dos últimos N dias (`?dias=`)         |
+| GET    | `/api/v1/dashboard/resumo`           | Total current balance, month's income/expenses/investments, main goal, upcoming bills |
+| GET    | `/api/v1/dashboard/evolucao-saldo`   | Cumulative cash-flow series (approximation) for the last N days (`?dias=`)            |
 
-### Projeção — `/api/v1/projecao`
+### Projection — `/api/v1/projecao`
 
 | Method | Route                             | Description                                                          |
-|--------|-------------------------------------|----------------------------------------------------------------------|
-| POST   | `/api/v1/projecao/calcular`         | Calcular quando o patrimônio alvo será atingido; salva a simulação    |
-| GET    | `/api/v1/projecao/ultima-simulacao` | Buscar a última simulação salva do usuário (404 se nunca simulou)     |
+|--------|-------------------------------------|------------------------------------------------------------------------|
+| POST   | `/api/v1/projecao/calcular`         | Calculate when the target net worth will be reached; saves the simulation |
+| GET    | `/api/v1/projecao/ultima-simulacao` | Get the user's last saved simulation (404 if none exists)               |
 
-### Relatórios — `/api/v1/relatorios`
+### Reports — `/api/v1/relatorios`
 
 | Method | Route                        | Description                                                                                                   |
 |--------|--------------------------------|--------------------------------------------------------------------------------------------------------------------|
-| GET    | `/api/v1/relatorios/mensal`     | Relatório mensal (entradas, saídas, investimentos, saldo líquido) dos últimos N meses (`?meses=`, padrão 12)       |
+| GET    | `/api/v1/relatorios/mensal`     | Monthly report (income, expenses, investments, net balance) for the last N months (`?meses=`, default 12)          |
 
-### Previsão de Saldo — `/api/v1/previsao-saldo`
+### Balance Forecast — `/api/v1/previsao-saldo`
 
 | Method | Route                      | Description                                                                                                                             |
 |--------|------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------|
-| GET    | `/api/v1/previsao-saldo`     | Projeta o saldo futuro a partir da média mensal histórica de saldo líquido (`?mesesHistorico=`, padrão 6; `?mesesProjecao=`, padrão 12)    |
+| GET    | `/api/v1/previsao-saldo`     | Projects the future balance from the historical monthly average net balance (`?mesesHistorico=`, default 6; `?mesesProjecao=`, default 12) |
 
-### Simulação Financeira — `/api/v1/simulacoes`
+### Financial Simulation — `/api/v1/simulacoes`
 
 | Method | Route                          | Description                                                                                                              |
 |--------|-----------------------------------|--------------------------------------------------------------------------------------------------------------------------|
-| POST   | `/api/v1/simulacoes/comparar`     | Compara de 2 a 3 cenários (patrimônio inicial, aporte mensal, taxa de retorno mensal) ao longo de um horizonte em meses  |
+| POST   | `/api/v1/simulacoes/comparar`     | Compares 2 to 3 scenarios (initial net worth, monthly contribution, monthly return rate) over a horizon in months        |
 
-### Exportação — `/api/v1/despesas/exportar` e `/api/v1/receitas/exportar`
+### Export — `/api/v1/despesas/exportar` and `/api/v1/receitas/exportar`
 
 | Method | Route                        | Description                                                                                                                          |
 |--------|--------------------------------|------------------------------------------------------------------------------------------------------------------------------------------|
-| GET    | `/api/v1/despesas/exportar`     | Exporta despesas filtradas em Excel ou PDF (`?formato=xlsx\|pdf`, mais os mesmos filtros opcionais de `GET /api/v1/despesas`)             |
-| GET    | `/api/v1/receitas/exportar`     | Exporta receitas filtradas em Excel ou PDF (`?formato=xlsx\|pdf`, mais os mesmos filtros opcionais de `GET /api/v1/receitas`)             |
+| GET    | `/api/v1/despesas/exportar`     | Exports filtered expenses as Excel or PDF (`?formato=xlsx\|pdf`, plus the same optional filters as `GET /api/v1/despesas`)               |
+| GET    | `/api/v1/receitas/exportar`     | Exports filtered income entries as Excel or PDF (`?formato=xlsx\|pdf`, plus the same optional filters as `GET /api/v1/receitas`)          |
+
+### Family Group — `/api/v1/grupos-familiares`
+
+Lets multiple existing users share the same financial data with roles OWNER (manages membership, can delete the group), MEMBER (full CRUD), and VIEWER (read-only — writes return 403). Joining/leaving never changes a row's actual owner (`user_id`), only the read/write *scope* resolved per request via `CurrentUserProvider.getScopeUserIds()`.
+
+| Method | Route                                              | Description                                                        |
+|--------|------------------------------------------------------|-------------------------------------------------------------------------|
+| POST   | `/api/v1/grupos-familiares`                          | Create a family group (caller becomes OWNER)                            |
+| GET    | `/api/v1/grupos-familiares/me`                       | Get the caller's group + members + role (204 if not in a group)         |
+| DELETE | `/api/v1/grupos-familiares`                          | Delete the group (owner only)                                            |
+| POST   | `/api/v1/grupos-familiares/convites`                 | Invite an existing user by email + role (owner only)                     |
+| GET    | `/api/v1/grupos-familiares/convites/pendentes`       | List pending invites addressed to the caller                             |
+| PATCH  | `/api/v1/grupos-familiares/convites/{id}/aceitar`    | Accept an invite                                                          |
+| PATCH  | `/api/v1/grupos-familiares/convites/{id}/recusar`    | Decline an invite                                                         |
+| PATCH  | `/api/v1/grupos-familiares/membros/{userId}/papel`   | Change a member's role (owner only)                                       |
+| DELETE | `/api/v1/grupos-familiares/membros/{userId}`         | Remove a member (owner), or leave the group (self, non-owner)            |
+
+### Notifications — `/api/v1/notificacoes`
+
+In-app alerts for bills due within 3 days, credit card statements closing within 3 days, and goals that reached their target — generated by a daily cron (02:00) and fanned out to every member of the owner's family group, or on demand.
+
+| Method | Route                                     | Description                                                          |
+|--------|----------------------------------------------|------------------------------------------------------------------------|
+| GET    | `/api/v1/notificacoes`                        | List the caller's notifications (paginated, optional `?lida=` filter)  |
+| GET    | `/api/v1/notificacoes/nao-lidas/contagem`     | Count unread notifications                                             |
+| PATCH  | `/api/v1/notificacoes/{id}/marcar-lida`       | Mark one notification as read                                          |
+| PATCH  | `/api/v1/notificacoes/marcar-todas-lidas`     | Mark all of the caller's notifications as read                         |
+| DELETE | `/api/v1/notificacoes/{id}`                   | Delete a notification                                                   |
+| POST   | `/api/v1/notificacoes/gerar`                  | Manually trigger generation (same logic as the daily cron)             |
+
+### Open Finance (stub) — `/api/v1/open-finance`
+
+Demonstrates the data model/API shape for a future real Open Finance integration. `/instituicoes` is a hardcoded illustrative list; connecting creates a real `BankAccount`/`CreditCard` row tagged `origem=OPEN_FINANCE`; syncing only bumps a timestamp. No real bank API is ever called and no transaction data is ever fabricated.
+
+| Method | Route                                        | Description                                                              |
+|--------|-------------------------------------------------|------------------------------------------------------------------------------|
+| GET    | `/api/v1/open-finance/instituicoes`              | List mock institutions available to connect                                  |
+| POST   | `/api/v1/open-finance/conectar`                  | Connect a mock institution as a bank account or credit card                  |
+| PATCH  | `/api/v1/open-finance/contas/{id}/sincronizar`   | Simulate syncing a connected bank account (updates `ultimaSincronizacao` only) |
+| PATCH  | `/api/v1/open-finance/cartoes/{id}/sincronizar`  | Simulate syncing a connected credit card (updates `ultimaSincronizacao` only)  |
 
 ---
 

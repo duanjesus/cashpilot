@@ -9,14 +9,15 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 
 @Repository
 public interface TransferRepository extends JpaRepository<Transfer, Long> {
 
-    Optional<Transfer> findByIdAndUserId(Long id, Long userId);
+    Optional<Transfer> findByIdAndUserIdIn(Long id, List<Long> userIds);
 
-    Page<Transfer> findAllByUserId(Long userId, Pageable pageable);
+    Page<Transfer> findAllByUserIdIn(List<Long> userIds, Pageable pageable);
 
     boolean existsByContaOrigemId(Long contaId);
 

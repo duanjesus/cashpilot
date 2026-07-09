@@ -52,6 +52,9 @@ src/
 │   ├── relatorios/   # RelatoriosPage (entradas vs. saídas bar chart + despesas por categoria pie chart)
 │   ├── previsao-saldo/ # PrevisaoSaldoPage (long-term projected balance line chart, based on historical averages)
 │   ├── simulacao/    # SimulacaoPage (compare 2-3 what-if financial scenarios side by side)
+│   ├── grupo-familiar/ # GrupoFamiliarPage (create/join a family group, invite/manage members and roles)
+│   ├── notificacoes/ # NotificacoesPage (paginated notification history)
+│   ├── open-finance/ # OpenFinancePage (connect mock institutions, sync stub)
 │   └── ...           # categorias, contas, cartoes, receitas, despesas, parcelamentos, assinaturas,
 │                      # contas-a-pagar, contas-a-receber, transferencias, metas
 ├── types/           # TypeScript types mirroring the backend DTOs
@@ -62,17 +65,23 @@ src/
 
 The app stores the JWT returned by `/api/v1/auth/login` (or `/register`, which also logs in) in `localStorage` under `cashpilot.token`/`cashpilot.user`. Every request attaches `Authorization: Bearer <token>` via an Axios request interceptor. A 401 response clears the session and redirects to `/login`.
 
-CashPilot has **no roles or admin/operator split** — every authenticated user only ever sees and manages their own data, enforced server-side. There is no equivalent of an `AdminRoute`; `<ProtectedRoute>` is the only route guard.
+CashPilot has **no admin/operator split** — every authenticated user only ever sees and manages their own data by default. Since V4, a user can optionally join a family group with an OWNER/MEMBER/VIEWER role (see below); there is still no equivalent of an `AdminRoute`, `<ProtectedRoute>` is the only route guard, and VIEWER write-blocking is enforced server-side (403) — the frontend only hides a few obvious create buttons as a UX nicety via `useMyFamilyGroup()`.
 
 ## Notes on the dashboard charts
 
-- **Entradas vs. saídas**: compares the current month's totals from `/dashboard/resumo` as a two-bar chart. A true 6-month trailing history would need a dedicated backend endpoint that doesn't exist yet in this contract, so this is a deliberate simplification for V1.
-- **Despesas por categoria**: fetched client-side via `/despesas` filtered to the current month's date range, then aggregated by `categoriaNome`; slice colors use each category's `cor` field where available, falling back to a fixed palette.
-- **Tendência de fluxo de caixa**: sourced from `/dashboard/evolucao-saldo`. This is explicitly labeled in the UI as an *approximate* net cash-flow trend, not an audited balance history, since V1 stores no historical balance snapshots.
+- **Income vs. expenses**: compares the current month's totals from `/dashboard/resumo` as a two-bar chart. A true 6-month trailing history would need a dedicated backend endpoint that doesn't exist yet in this contract, so this is a deliberate simplification for V1.
+- **Expenses by category**: fetched client-side via `/despesas` filtered to the current month's date range, then aggregated by `categoriaNome`; slice colors use each category's `cor` field where available, falling back to a fixed palette.
+- **Cash-flow trend**: sourced from `/dashboard/evolucao-saldo`. This is explicitly labeled in the UI as an *approximate* net cash-flow trend, not an audited balance history, since V1 stores no historical balance snapshots.
 
 ## Notes on the V3 analytics pages
 
-- **Gráficos** (`/relatorios`): a 12-month entradas vs. saídas bar chart from `/relatorios/mensal`, plus a despesas-por-categoria pie chart with a user-selectable date range (fetched client-side via `/despesas`, same aggregation technique as the dashboard's pie).
-- **Previsão de saldo** (`/previsao-saldo`): a long-term balance projection line chart from `/previsao-saldo`, based on the historical average of entradas/saídas over the last N months. This is explicitly distinguished in the UI from **Fluxo de caixa**, which only projects already-known near-term items (pending expenses/incomes/subscriptions) — the two pages answer different questions and shouldn't be confused.
-- **Simulação** (`/simulacao`): compares 2-3 user-defined what-if scenarios (initial net worth, monthly contribution, monthly return rate) over a shared horizon via `POST /simulacoes/comparar`, rendered as a multi-series line chart.
-- **Exportação**: `DespesasListPage` and `ReceitasListPage` each have "Exportar Excel"/"Exportar PDF" buttons that download the currently filtered list from `/despesas/exportar` or `/receitas/exportar` (see `utils/download.ts`'s `downloadBlob` helper — needed because authenticated file downloads can't use a plain `<a href>`).
+- **Charts** (`/relatorios`): a 12-month income vs. expenses bar chart from `/relatorios/mensal`, plus an expenses-by-category pie chart with a user-selectable date range (fetched client-side via `/despesas`, same aggregation technique as the dashboard's pie).
+- **Balance forecast** (`/previsao-saldo`): a long-term balance projection line chart from `/previsao-saldo`, based on the historical average of income/expenses over the last N months. This is explicitly distinguished in the UI from **Cash Flow**, which only projects already-known near-term items (pending expenses/incomes/subscriptions) — the two pages answer different questions and shouldn't be confused.
+- **Simulation** (`/simulacao`): compares 2-3 user-defined what-if scenarios (initial net worth, monthly contribution, monthly return rate) over a shared horizon via `POST /simulacoes/comparar`, rendered as a multi-series line chart.
+- **Export**: `DespesasListPage` and `ReceitasListPage` each have "Export to Excel"/"Export to PDF" buttons that download the currently filtered list from `/despesas/exportar` or `/receitas/exportar` (see `utils/download.ts`'s `downloadBlob` helper — needed because authenticated file downloads can't use a plain `<a href>`).
+
+## Notes on the V4 pages
+
+- **Grupo Familiar** (`/grupo-familiar`): single-view page (like Dashboard/Projection, not a list+modal CRUD page) — shows a "create group" CTA when the user isn't in one, or the group's members/roles/invite form when they are. `useMyFamilyGroup()` also drives the small VIEWER-role CTA-hiding on the Despesas/Receitas/Contas list pages.
+- **Notificações** (`/notificacoes` + the bell icon in `Header`): the bell polls `/notificacoes/nao-lidas/contagem` every 30s for its badge and shows the 5 most recent notifications in a dropdown, with a "Gerar agora" button for demoing without waiting for the daily cron; the full page adds pagination and a read/unread filter.
+- **Open Finance** (`/open-finance`): a clearly-labeled demo page — connecting a mock institution creates a real (zero-balance) `BankAccount`/`CreditCard` tagged `origem: "OPEN_FINANCE"`, which then also shows an "Open Finance" badge on the regular Contas/Cartões list pages.

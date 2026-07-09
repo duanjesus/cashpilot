@@ -32,6 +32,7 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     public CategoryResponseDTO create(CategoryRequestDTO dto) {
+        currentUserProvider.requireWriteAccess();
         User user = currentUserProvider.getCurrentUser();
 
         if (categoryRepository.existsByUserIdAndNomeIgnoreCase(user.getId(), dto.nome())) {
@@ -53,6 +54,7 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     public CategoryResponseDTO update(Long id, CategoryRequestDTO dto) {
+        currentUserProvider.requireWriteAccess();
         Category category = findOwnedEntityById(id);
 
         category.setNome(dto.nome());
@@ -65,6 +67,7 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     public void delete(Long id) {
+        currentUserProvider.requireWriteAccess();
         Category category = findOwnedEntityById(id);
 
         boolean inUse = incomeRepository.existsByCategoriaId(id) || expenseRepository.existsByCategoriaId(id);
@@ -78,9 +81,9 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     @Transactional(readOnly = true)
     public CategoryResponseDTO findById(Long id) {
-        Long userId = currentUserProvider.getCurrentUserId();
+        List<Long> scopeUserIds = currentUserProvider.getScopeUserIds();
         Category category = categoryRepository.findById(id)
-                .filter(c -> c.getUser() == null || c.getUser().getId().equals(userId))
+                .filter(c -> c.getUser() == null || scopeUserIds.contains(c.getUser().getId()))
                 .orElseThrow(() -> ResourceNotFoundException.of("Categoria", id));
         return categoryMapper.toResponseDto(category);
     }
@@ -88,21 +91,21 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     @Transactional(readOnly = true)
     public List<CategoryResponseDTO> findAllVisible() {
-        Long userId = currentUserProvider.getCurrentUserId();
-        return categoryRepository.findAllVisibleToUser(userId).stream()
+        List<Long> scopeUserIds = currentUserProvider.getScopeUserIds();
+        return categoryRepository.findAllVisibleToUser(scopeUserIds).stream()
                 .map(categoryMapper::toResponseDto)
                 .toList();
     }
 
     private Category findOwnedEntityById(Long id) {
-        Long userId = currentUserProvider.getCurrentUserId();
+        List<Long> scopeUserIds = currentUserProvider.getScopeUserIds();
         Category category = categoryRepository.findById(id)
                 .orElseThrow(() -> ResourceNotFoundException.of("Categoria", id));
 
         if (Boolean.TRUE.equals(category.getIsSystem())) {
             throw new BusinessException("Categorias padrão do sistema não podem ser editadas ou excluídas");
         }
-        if (category.getUser() == null || !category.getUser().getId().equals(userId)) {
+        if (category.getUser() == null || !scopeUserIds.contains(category.getUser().getId())) {
             throw ResourceNotFoundException.of("Categoria", id);
         }
         return category;

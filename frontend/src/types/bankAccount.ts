@@ -1,3 +1,5 @@
+import type { ContaOrigem } from "@/types/openFinance";
+
 export type BankAccountType = "CORRENTE" | "POUPANCA" | "CARTEIRA" | "OUTRA";
 
 export const BANK_ACCOUNT_TYPE_LABELS: Record<BankAccountType, string> = {
@@ -16,6 +18,9 @@ export interface BankAccount {
   dataSaldoInicial: string;
   ativa: boolean;
   saldoAtual: number;
+  origem: ContaOrigem;
+  instituicaoNome: string | null;
+  ultimaSincronizacao: string | null;
 }
 
 export interface BankAccountRequest {

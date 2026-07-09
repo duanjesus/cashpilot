@@ -61,6 +61,7 @@ export function CartoesListPage() {
                   <th className="px-4 py-3 font-medium">Bandeira</th>
                   <th className="px-4 py-3 font-medium">Limite</th>
                   <th className="px-4 py-3 font-medium">Fatura atual</th>
+                  <th className="px-4 py-3 font-medium">Origem</th>
                   <th className="px-4 py-3 font-medium">Status</th>
                   <th className="px-4 py-3 font-medium text-right">Ações</th>
                 </tr>
@@ -72,6 +73,9 @@ export function CartoesListPage() {
                     <td className="px-4 py-3 text-slate-600">{CARD_BRAND_LABELS[card.bandeira]}</td>
                     <td className="px-4 py-3 text-slate-600">{formatCurrency(card.limite)}</td>
                     <td className="px-4 py-3 text-slate-600">{formatCurrency(card.faturaAtual)}</td>
+                    <td className="px-4 py-3">
+                      {card.origem === "OPEN_FINANCE" && <Badge tone="blue">Open Finance</Badge>}
+                    </td>
                     <td className="px-4 py-3">
                       <Badge tone={card.ativo ? "green" : "slate"}>{card.ativo ? "Ativo" : "Inativo"}</Badge>
                     </td>

@@ -16,7 +16,7 @@ import java.util.Optional;
 @Repository
 public interface ExpenseRepository extends JpaRepository<Expense, Long> {
 
-    Optional<Expense> findByIdAndUserId(Long id, Long userId);
+    Optional<Expense> findByIdAndUserIdIn(Long id, List<Long> userIds);
 
     boolean existsByCategoriaId(Long categoriaId);
 
@@ -40,7 +40,7 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
 
     @Query("""
             SELECT e FROM Expense e
-            WHERE e.user.id = :userId
+            WHERE e.user.id IN :userIds
               AND (CAST(:dataInicio AS date) IS NULL OR e.data >= :dataInicio)
               AND (CAST(:dataFim AS date) IS NULL OR e.data <= :dataFim)
               AND (CAST(:categoriaId AS long) IS NULL OR e.categoria.id = :categoriaId)
@@ -48,7 +48,7 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
               AND (CAST(:cartaoId AS long) IS NULL OR e.cartaoCredito.id = :cartaoId)
               AND (CAST(:paga AS boolean) IS NULL OR e.paga = :paga)
             """)
-    Page<Expense> findAllByFilters(@Param("userId") Long userId,
+    Page<Expense> findAllByFilters(@Param("userIds") List<Long> userIds,
                                     @Param("dataInicio") LocalDate dataInicio,
                                     @Param("dataFim") LocalDate dataFim,
                                     @Param("categoriaId") Long categoriaId,
@@ -62,7 +62,7 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
             LEFT JOIN FETCH e.categoria
             LEFT JOIN FETCH e.contaBancaria
             LEFT JOIN FETCH e.cartaoCredito
-            WHERE e.user.id = :userId
+            WHERE e.user.id IN :userIds
               AND (CAST(:dataInicio AS date) IS NULL OR e.data >= :dataInicio)
               AND (CAST(:dataFim AS date) IS NULL OR e.data <= :dataFim)
               AND (CAST(:categoriaId AS long) IS NULL OR e.categoria.id = :categoriaId)
@@ -70,7 +70,7 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
               AND (CAST(:cartaoId AS long) IS NULL OR e.cartaoCredito.id = :cartaoId)
               AND (CAST(:paga AS boolean) IS NULL OR e.paga = :paga)
             """)
-    List<Expense> findAllByFiltersList(@Param("userId") Long userId,
+    List<Expense> findAllByFiltersList(@Param("userIds") List<Long> userIds,
                                         @Param("dataInicio") LocalDate dataInicio,
                                         @Param("dataFim") LocalDate dataFim,
                                         @Param("categoriaId") Long categoriaId,
@@ -80,31 +80,31 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
 
     @Query("""
             SELECT e FROM Expense e
-            WHERE e.user.id = :userId AND e.data BETWEEN :dataInicio AND :dataFim
+            WHERE e.user.id IN :userIds AND e.data BETWEEN :dataInicio AND :dataFim
             """)
-    List<Expense> findAllByUserIdAndDataBetween(@Param("userId") Long userId,
+    List<Expense> findAllByUserIdAndDataBetween(@Param("userIds") List<Long> userIds,
                                                  @Param("dataInicio") LocalDate dataInicio,
                                                  @Param("dataFim") LocalDate dataFim);
 
-    @Query("SELECT COALESCE(SUM(e.valor), 0) FROM Expense e WHERE e.user.id = :userId AND e.data BETWEEN :dataInicio AND :dataFim")
-    BigDecimal sumValorByUserIdAndDataBetween(@Param("userId") Long userId,
+    @Query("SELECT COALESCE(SUM(e.valor), 0) FROM Expense e WHERE e.user.id IN :userIds AND e.data BETWEEN :dataInicio AND :dataFim")
+    BigDecimal sumValorByUserIdAndDataBetween(@Param("userIds") List<Long> userIds,
                                                @Param("dataInicio") LocalDate dataInicio,
                                                @Param("dataFim") LocalDate dataFim);
 
     @Query("""
             SELECT COALESCE(SUM(e.valor), 0) FROM Expense e
-            WHERE e.user.id = :userId AND e.data BETWEEN :dataInicio AND :dataFim AND e.categoria.isInvestment = true
+            WHERE e.user.id IN :userIds AND e.data BETWEEN :dataInicio AND :dataFim AND e.categoria.isInvestment = true
             """)
-    BigDecimal sumValorByUserIdAndDataBetweenAndCategoriaIsInvestment(@Param("userId") Long userId,
+    BigDecimal sumValorByUserIdAndDataBetweenAndCategoriaIsInvestment(@Param("userIds") List<Long> userIds,
                                                                        @Param("dataInicio") LocalDate dataInicio,
                                                                        @Param("dataFim") LocalDate dataFim);
 
     @Query("""
             SELECT e FROM Expense e
-            WHERE e.user.id = :userId AND e.paga = false AND e.data BETWEEN :dataInicio AND :dataFim
+            WHERE e.user.id IN :userIds AND e.paga = false AND e.data BETWEEN :dataInicio AND :dataFim
             ORDER BY e.data ASC
             """)
-    List<Expense> findUpcomingUnpaid(@Param("userId") Long userId,
+    List<Expense> findUpcomingUnpaid(@Param("userIds") List<Long> userIds,
                                       @Param("dataInicio") LocalDate dataInicio,
                                       @Param("dataFim") LocalDate dataFim);
 

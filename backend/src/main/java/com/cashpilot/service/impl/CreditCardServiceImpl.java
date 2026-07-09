@@ -5,6 +5,7 @@ import com.cashpilot.dto.response.CreditCardResponseDTO;
 import com.cashpilot.entity.BankAccount;
 import com.cashpilot.entity.CreditCard;
 import com.cashpilot.entity.User;
+import com.cashpilot.entity.enums.ContaOrigem;
 import com.cashpilot.exception.BusinessException;
 import com.cashpilot.exception.ResourceNotFoundException;
 import com.cashpilot.mapper.CreditCardMapper;
@@ -33,6 +34,7 @@ public class CreditCardServiceImpl implements CreditCardService {
 
     @Override
     public CreditCardResponseDTO create(CreditCardRequestDTO dto) {
+        currentUserProvider.requireWriteAccess();
         User user = currentUserProvider.getCurrentUser();
         BankAccount contaVinculada = resolveContaVinculada(dto.contaVinculadaId(), user.getId());
 
@@ -45,6 +47,8 @@ public class CreditCardServiceImpl implements CreditCardService {
                 .diaVencimento(dto.diaVencimento())
                 .contaVinculada(contaVinculada)
                 .ativo(dto.ativo() == null || dto.ativo())
+                .origem(dto.origem() == null ? ContaOrigem.MANUAL : dto.origem())
+                .instituicaoNome(dto.instituicaoNome())
                 .build();
 
         CreditCard saved = creditCardRepository.save(card);
@@ -53,6 +57,7 @@ public class CreditCardServiceImpl implements CreditCardService {
 
     @Override
     public CreditCardResponseDTO update(Long id, CreditCardRequestDTO dto) {
+        currentUserProvider.requireWriteAccess();
         CreditCard card = findOwnedEntityById(id);
         BankAccount contaVinculada = resolveContaVinculada(dto.contaVinculadaId(), card.getUser().getId());
 
@@ -65,6 +70,10 @@ public class CreditCardServiceImpl implements CreditCardService {
         if (dto.ativo() != null) {
             card.setAtivo(dto.ativo());
         }
+        if (dto.origem() != null) {
+            card.setOrigem(dto.origem());
+        }
+        card.setInstituicaoNome(dto.instituicaoNome());
 
         CreditCard updated = creditCardRepository.save(card);
         return toResponseWithFatura(updated);
@@ -72,6 +81,7 @@ public class CreditCardServiceImpl implements CreditCardService {
 
     @Override
     public void delete(Long id) {
+        currentUserProvider.requireWriteAccess();
         CreditCard card = findOwnedEntityById(id);
 
         if (expenseRepository.existsByCartaoCreditoId(id)) {
@@ -91,8 +101,8 @@ public class CreditCardServiceImpl implements CreditCardService {
     @Override
     @Transactional(readOnly = true)
     public List<CreditCardResponseDTO> findAll() {
-        Long userId = currentUserProvider.getCurrentUserId();
-        return creditCardRepository.findAllByUserId(userId).stream()
+        List<Long> scopeUserIds = currentUserProvider.getScopeUserIds();
+        return creditCardRepository.findAllByUserIdIn(scopeUserIds).stream()
                 .map(this::toResponseWithFatura)
                 .toList();
     }
@@ -110,7 +120,10 @@ public class CreditCardServiceImpl implements CreditCardService {
                 base.contaVinculadaId(),
                 base.contaVinculadaNome(),
                 base.ativo(),
-                faturaAtual
+                faturaAtual,
+                base.origem(),
+                base.instituicaoNome(),
+                base.ultimaSincronizacao()
         );
     }
 
@@ -118,13 +131,13 @@ public class CreditCardServiceImpl implements CreditCardService {
         if (contaVinculadaId == null) {
             return null;
         }
-        return bankAccountRepository.findByIdAndUserId(contaVinculadaId, userId)
+        return bankAccountRepository.findByIdAndUserIdIn(contaVinculadaId, currentUserProvider.getScopeUserIds())
                 .orElseThrow(() -> ResourceNotFoundException.of("Conta bancária", contaVinculadaId));
     }
 
     private CreditCard findOwnedEntityById(Long id) {
-        Long userId = currentUserProvider.getCurrentUserId();
-        return creditCardRepository.findByIdAndUserId(id, userId)
+        List<Long> scopeUserIds = currentUserProvider.getScopeUserIds();
+        return creditCardRepository.findByIdAndUserIdIn(id, scopeUserIds)
                 .orElseThrow(() -> ResourceNotFoundException.of("Cartão de crédito", id));
     }
 

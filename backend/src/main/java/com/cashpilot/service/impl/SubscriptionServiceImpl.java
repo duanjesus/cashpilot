@@ -52,6 +52,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
     @Override
     public SubscriptionResponseDTO create(SubscriptionRequestDTO dto) {
+        currentUserProvider.requireWriteAccess();
         User user = currentUserProvider.getCurrentUser();
         validateFormaPagamento(dto.contaBancariaId(), dto.cartaoCreditoId());
 
@@ -79,6 +80,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
     @Override
     public SubscriptionResponseDTO update(Long id, SubscriptionRequestDTO dto) {
+        currentUserProvider.requireWriteAccess();
         Subscription subscription = findOwnedEntityById(id);
         validateFormaPagamento(dto.contaBancariaId(), dto.cartaoCreditoId());
 
@@ -106,6 +108,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
     @Override
     public void delete(Long id) {
+        currentUserProvider.requireWriteAccess();
         // Unconditional: subscriptions are ongoing generators, not fixed plans. Already
         // generated despesas survive via ON DELETE SET NULL on assinatura_id.
         Subscription subscription = findOwnedEntityById(id);
@@ -121,19 +124,19 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     @Override
     @Transactional(readOnly = true)
     public List<SubscriptionResponseDTO> findAll() {
-        Long userId = currentUserProvider.getCurrentUserId();
-        return subscriptionRepository.findAllByUserId(userId).stream()
+        List<Long> scopeUserIds = currentUserProvider.getScopeUserIds();
+        return subscriptionRepository.findAllByUserIdIn(scopeUserIds).stream()
                 .map(subscriptionMapper::toResponseDto)
                 .toList();
     }
 
     @Override
     public List<ExpenseResponseDTO> gerarPendentes() {
-        Long userId = currentUserProvider.getCurrentUserId();
+        List<Long> scopeUserIds = currentUserProvider.getScopeUserIds();
         LocalDate hoje = LocalDate.now();
 
         List<ExpenseResponseDTO> criadas = new ArrayList<>();
-        for (Subscription assinatura : subscriptionRepository.findAllByUserIdAndAtivaTrue(userId)) {
+        for (Subscription assinatura : subscriptionRepository.findAllByUserIdInAndAtivaTrue(scopeUserIds)) {
             criadas.addAll(gerarCobrancasParaAssinatura(assinatura, hoje));
         }
         return criadas;
@@ -186,8 +189,9 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     }
 
     private Category resolveCategoria(Long categoriaId, Long userId) {
+        List<Long> scopeUserIds = currentUserProvider.getScopeUserIds();
         Category categoria = categoryRepository.findById(categoriaId)
-                .filter(c -> c.getUser() == null || c.getUser().getId().equals(userId))
+                .filter(c -> c.getUser() == null || scopeUserIds.contains(c.getUser().getId()))
                 .orElseThrow(() -> ResourceNotFoundException.of("Categoria", categoriaId));
 
         if (categoria.getTipo() != CategoryType.DESPESA && categoria.getTipo() != CategoryType.AMBOS) {
@@ -200,7 +204,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         if (contaId == null) {
             return null;
         }
-        return bankAccountRepository.findByIdAndUserId(contaId, userId)
+        return bankAccountRepository.findByIdAndUserIdIn(contaId, currentUserProvider.getScopeUserIds())
                 .orElseThrow(() -> ResourceNotFoundException.of("Conta bancária", contaId));
     }
 
@@ -208,13 +212,13 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         if (cartaoId == null) {
             return null;
         }
-        return creditCardRepository.findByIdAndUserId(cartaoId, userId)
+        return creditCardRepository.findByIdAndUserIdIn(cartaoId, currentUserProvider.getScopeUserIds())
                 .orElseThrow(() -> ResourceNotFoundException.of("Cartão de crédito", cartaoId));
     }
 
     private Subscription findOwnedEntityById(Long id) {
-        Long userId = currentUserProvider.getCurrentUserId();
-        return subscriptionRepository.findByIdAndUserId(id, userId)
+        List<Long> scopeUserIds = currentUserProvider.getScopeUserIds();
+        return subscriptionRepository.findByIdAndUserIdIn(id, scopeUserIds)
                 .orElseThrow(() -> ResourceNotFoundException.of("Assinatura", id));
     }
 

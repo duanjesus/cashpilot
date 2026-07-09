@@ -22,6 +22,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -105,7 +106,7 @@ class CategoryServiceImplTest {
         Category systemCategory = Category.builder().id(2L).user(null).nome("Salário")
                 .tipo(CategoryType.RECEITA).isSystem(true).isInvestment(false).build();
 
-        when(currentUserProvider.getCurrentUserId()).thenReturn(1L);
+        when(currentUserProvider.getScopeUserIds()).thenReturn(List.of(1L));
         when(categoryRepository.findById(2L)).thenReturn(Optional.of(systemCategory));
 
         assertThatThrownBy(() -> categoryService.delete(2L))
@@ -117,7 +118,7 @@ class CategoryServiceImplTest {
     @Test
     @DisplayName("Deve lançar BusinessException ao excluir categoria em uso por despesas")
     void deveLancarExcecaoAoExcluirCategoriaEmUso() {
-        when(currentUserProvider.getCurrentUserId()).thenReturn(1L);
+        when(currentUserProvider.getScopeUserIds()).thenReturn(List.of(1L));
         when(categoryRepository.findById(10L)).thenReturn(Optional.of(category));
         when(incomeRepository.existsByCategoriaId(10L)).thenReturn(false);
         when(expenseRepository.existsByCategoriaId(10L)).thenReturn(true);
@@ -131,7 +132,7 @@ class CategoryServiceImplTest {
     @Test
     @DisplayName("Deve lançar ResourceNotFoundException ao buscar categoria inexistente")
     void deveLancarExcecaoAoBuscarCategoriaInexistente() {
-        when(currentUserProvider.getCurrentUserId()).thenReturn(1L);
+        when(currentUserProvider.getScopeUserIds()).thenReturn(List.of(1L));
         when(categoryRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> categoryService.findById(99L))

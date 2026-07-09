@@ -47,7 +47,7 @@ public class DashboardServiceImpl implements DashboardService {
 
     @Override
     public DashboardSummaryResponseDTO getResumo() {
-        Long userId = currentUserProvider.getCurrentUserId();
+        List<Long> scopeUserIds = currentUserProvider.getScopeUserIds();
 
         BigDecimal saldoAtual = bankAccountService.getSaldoAtualTotal();
 
@@ -55,18 +55,18 @@ public class DashboardServiceImpl implements DashboardService {
         LocalDate primeiroDiaMes = hoje.withDayOfMonth(1);
         LocalDate ultimoDiaMes = hoje.withDayOfMonth(hoje.lengthOfMonth());
 
-        BigDecimal entradasMes = incomeRepository.sumValorByUserIdAndDataBetween(userId, primeiroDiaMes, ultimoDiaMes);
-        BigDecimal saidasMes = expenseRepository.sumValorByUserIdAndDataBetween(userId, primeiroDiaMes, ultimoDiaMes);
-        BigDecimal investimentosMes = expenseRepository.sumValorByUserIdAndDataBetweenAndCategoriaIsInvestment(userId, primeiroDiaMes, ultimoDiaMes);
+        BigDecimal entradasMes = incomeRepository.sumValorByUserIdAndDataBetween(scopeUserIds, primeiroDiaMes, ultimoDiaMes);
+        BigDecimal saidasMes = expenseRepository.sumValorByUserIdAndDataBetween(scopeUserIds, primeiroDiaMes, ultimoDiaMes);
+        BigDecimal investimentosMes = expenseRepository.sumValorByUserIdAndDataBetweenAndCategoriaIsInvestment(scopeUserIds, primeiroDiaMes, ultimoDiaMes);
 
-        MetaPrincipalResponseDTO metaPrincipal = financialGoalRepository.findActiveOrderedByNearestDataAlvo(userId, hoje)
+        MetaPrincipalResponseDTO metaPrincipal = financialGoalRepository.findActiveOrderedByNearestDataAlvo(scopeUserIds, hoje)
                 .stream()
                 .findFirst()
                 .map(this::toMetaPrincipal)
                 .orElse(null);
 
         LocalDate fimJanela = hoje.plusDays(proximasContasDiasPadrao);
-        List<ProximaContaResponseDTO> proximasContas = expenseRepository.findUpcomingUnpaid(userId, hoje, fimJanela)
+        List<ProximaContaResponseDTO> proximasContas = expenseRepository.findUpcomingUnpaid(scopeUserIds, hoje, fimJanela)
                 .stream()
                 .limit(10)
                 .map(e -> toProximaConta(e, hoje))
@@ -77,7 +77,7 @@ public class DashboardServiceImpl implements DashboardService {
 
     @Override
     public List<EvolucaoSaldoPointDTO> getEvolucaoSaldo(Integer dias) {
-        Long userId = currentUserProvider.getCurrentUserId();
+        List<Long> scopeUserIds = currentUserProvider.getScopeUserIds();
         int janela = dias != null ? dias : evolucaoSaldoDiasPadrao;
 
         LocalDate hoje = LocalDate.now();
@@ -88,10 +88,10 @@ public class DashboardServiceImpl implements DashboardService {
             deltasPorDia.put(d, BigDecimal.ZERO);
         }
 
-        for (Income income : incomeRepository.findAllByUserIdAndDataBetween(userId, inicio, hoje)) {
+        for (Income income : incomeRepository.findAllByUserIdAndDataBetween(scopeUserIds, inicio, hoje)) {
             deltasPorDia.merge(income.getData(), income.getValor(), BigDecimal::add);
         }
-        for (Expense expense : expenseRepository.findAllByUserIdAndDataBetween(userId, inicio, hoje)) {
+        for (Expense expense : expenseRepository.findAllByUserIdAndDataBetween(scopeUserIds, inicio, hoje)) {
             if (expense.getContaBancaria() != null) {
                 deltasPorDia.merge(expense.getData(), expense.getValor().negate(), BigDecimal::add);
             }

@@ -42,7 +42,7 @@ public class FluxoCaixaServiceImpl implements FluxoCaixaService {
 
     @Override
     public FluxoCaixaResponseDTO getFluxoCaixa(Integer dias) {
-        Long userId = currentUserProvider.getCurrentUserId();
+        List<Long> scopeUserIds = currentUserProvider.getScopeUserIds();
         int janela = dias != null ? dias : diasPadrao;
 
         LocalDate hoje = LocalDate.now();
@@ -51,18 +51,18 @@ public class FluxoCaixaServiceImpl implements FluxoCaixaService {
         BigDecimal saldoInicial = bankAccountService.getSaldoAtualTotal();
 
         List<FluxoCaixaItemDTO> detalhamento = new ArrayList<>();
-        detalhamento.addAll(coletarDespesasPendentes(userId, hoje, dataFim));
-        detalhamento.addAll(coletarReceitasPendentes(userId, hoje, dataFim));
-        detalhamento.addAll(coletarAssinaturasProjetadas(userId, hoje, dataFim));
+        detalhamento.addAll(coletarDespesasPendentes(scopeUserIds, hoje, dataFim));
+        detalhamento.addAll(coletarReceitasPendentes(scopeUserIds, hoje, dataFim));
+        detalhamento.addAll(coletarAssinaturasProjetadas(scopeUserIds, hoje, dataFim));
 
         List<FluxoCaixaPontoDTO> serie = construirSerie(hoje, dataFim, saldoInicial, detalhamento);
 
         return new FluxoCaixaResponseDTO(saldoInicial, serie, detalhamento);
     }
 
-    private List<FluxoCaixaItemDTO> coletarDespesasPendentes(Long userId, LocalDate hoje, LocalDate dataFim) {
+    private List<FluxoCaixaItemDTO> coletarDespesasPendentes(List<Long> scopeUserIds, LocalDate hoje, LocalDate dataFim) {
         List<FluxoCaixaItemDTO> itens = new ArrayList<>();
-        for (Expense despesa : expenseRepository.findUpcomingUnpaid(userId, hoje, dataFim)) {
+        for (Expense despesa : expenseRepository.findUpcomingUnpaid(scopeUserIds, hoje, dataFim)) {
             String origemNome = despesa.getCategoria() != null ? despesa.getCategoria().getNome() : null;
             itens.add(new FluxoCaixaItemDTO(despesa.getData(), despesa.getDescricao(), despesa.getValor().negate(),
                     "DESPESA_PENDENTE", origemNome));
@@ -70,9 +70,9 @@ public class FluxoCaixaServiceImpl implements FluxoCaixaService {
         return itens;
     }
 
-    private List<FluxoCaixaItemDTO> coletarReceitasPendentes(Long userId, LocalDate hoje, LocalDate dataFim) {
+    private List<FluxoCaixaItemDTO> coletarReceitasPendentes(List<Long> scopeUserIds, LocalDate hoje, LocalDate dataFim) {
         List<FluxoCaixaItemDTO> itens = new ArrayList<>();
-        for (Income receita : incomeRepository.findAllByUserIdAndRecebidaFalseAndDataBetween(userId, hoje, dataFim)) {
+        for (Income receita : incomeRepository.findAllByUserIdAndRecebidaFalseAndDataBetween(scopeUserIds, hoje, dataFim)) {
             String origemNome = receita.getCategoria() != null ? receita.getCategoria().getNome() : null;
             itens.add(new FluxoCaixaItemDTO(receita.getData(), receita.getDescricao(), receita.getValor(),
                     "RECEITA_PENDENTE", origemNome));
@@ -80,9 +80,9 @@ public class FluxoCaixaServiceImpl implements FluxoCaixaService {
         return itens;
     }
 
-    private List<FluxoCaixaItemDTO> coletarAssinaturasProjetadas(Long userId, LocalDate hoje, LocalDate dataFim) {
+    private List<FluxoCaixaItemDTO> coletarAssinaturasProjetadas(List<Long> scopeUserIds, LocalDate hoje, LocalDate dataFim) {
         List<FluxoCaixaItemDTO> itens = new ArrayList<>();
-        for (Subscription assinatura : subscriptionRepository.findAllByUserIdAndAtivaTrue(userId)) {
+        for (Subscription assinatura : subscriptionRepository.findAllByUserIdInAndAtivaTrue(scopeUserIds)) {
             List<LocalDate> datas = subscriptionChargeScheduler.calcularDatasDevidas(
                     assinatura.getDataInicio(), assinatura.getDataFim(), assinatura.getDiaCobranca(), dataFim);
             for (LocalDate data : datas) {

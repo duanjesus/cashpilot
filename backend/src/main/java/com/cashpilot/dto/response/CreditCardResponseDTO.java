@@ -1,8 +1,10 @@
 package com.cashpilot.dto.response;
 
 import com.cashpilot.entity.enums.CardBrand;
+import com.cashpilot.entity.enums.ContaOrigem;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 public record CreditCardResponseDTO(
         Long id,
@@ -14,6 +16,9 @@ public record CreditCardResponseDTO(
         Long contaVinculadaId,
         String contaVinculadaNome,
         Boolean ativo,
-        BigDecimal faturaAtual
+        BigDecimal faturaAtual,
+        ContaOrigem origem,
+        String instituicaoNome,
+        LocalDateTime ultimaSincronizacao
 ) {
 }

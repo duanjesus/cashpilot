@@ -15,6 +15,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -26,6 +28,7 @@ public class ProjectionServiceImpl implements ProjectionService {
 
     @Override
     public ProjectionResponseDTO calcular(ProjectionRequestDTO dto) {
+        currentUserProvider.requireWriteAccess();
         User user = currentUserProvider.getCurrentUser();
 
         ProjectionResult result = projectionCalculator.calculate(
@@ -51,8 +54,8 @@ public class ProjectionServiceImpl implements ProjectionService {
     @Override
     @Transactional(readOnly = true)
     public ProjectionPreferenceResponseDTO getUltimaSimulacao() {
-        Long userId = currentUserProvider.getCurrentUserId();
-        ProjectionPreference preference = projectionPreferenceRepository.findByUserId(userId)
+        List<Long> scopeUserIds = currentUserProvider.getScopeUserIds();
+        ProjectionPreference preference = projectionPreferenceRepository.findFirstByUserIdInOrderByUpdatedAtDesc(scopeUserIds)
                 .orElseThrow(() -> new ResourceNotFoundException("Nenhuma simulação de projeção salva para este usuário"));
 
         return new ProjectionPreferenceResponseDTO(

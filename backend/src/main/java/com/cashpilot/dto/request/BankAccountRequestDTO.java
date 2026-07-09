@@ -1,6 +1,7 @@
 package com.cashpilot.dto.request;
 
 import com.cashpilot.entity.enums.BankAccountType;
+import com.cashpilot.entity.enums.ContaOrigem;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -26,7 +27,12 @@ public record BankAccountRequestDTO(
         @NotNull(message = "A data do saldo inicial é obrigatória")
         LocalDate dataSaldoInicial,
 
-        Boolean ativa
+        Boolean ativa,
+
+        ContaOrigem origem,
+
+        @Size(max = 150, message = "A instituição de origem deve ter no máximo 150 caracteres")
+        String instituicaoNome
 
 ) {
 }

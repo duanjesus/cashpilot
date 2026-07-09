@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useCategories } from "@/hooks/useCategories";
 import { useBankAccounts } from "@/hooks/useBankAccounts";
 import { useDeleteIncome, useIncomes, useMarkIncomeReceived } from "@/hooks/useIncomes";
+import { useMyFamilyGroup } from "@/hooks/useFamilyGroup";
 import { usePaginationState } from "@/hooks/usePaginationState";
 import { api, extractErrorMessage } from "@/lib/api";
 import type { Income, IncomeFilters } from "@/types/income";
@@ -33,6 +34,8 @@ export function ReceitasListPage({ initialFilters, title, description }: Receita
 
   const { data: categories } = useCategories();
   const { data: accounts } = useBankAccounts();
+  const { data: familyGroup } = useMyFamilyGroup();
+  const isViewer = familyGroup?.papelDoUsuarioAtual === "VIEWER";
   const { data, isLoading, isError } = useIncomes({
     page,
     size,
@@ -106,7 +109,9 @@ export function ReceitasListPage({ initialFilters, title, description }: Receita
           <Button variant="secondary" isLoading={isExporting} onClick={() => handleExport("pdf")}>
             Exportar PDF
           </Button>
-          <Button onClick={() => setModalState({ open: true, income: null })}>+ Nova receita</Button>
+          {!isViewer && (
+            <Button onClick={() => setModalState({ open: true, income: null })}>+ Nova receita</Button>
+          )}
         </div>
       </div>
 

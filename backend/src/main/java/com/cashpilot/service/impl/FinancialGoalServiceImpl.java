@@ -36,6 +36,7 @@ public class FinancialGoalServiceImpl implements FinancialGoalService {
 
     @Override
     public FinancialGoalResponseDTO create(FinancialGoalRequestDTO dto) {
+        currentUserProvider.requireWriteAccess();
         User user = currentUserProvider.getCurrentUser();
 
         FinancialGoal goal = FinancialGoal.builder()
@@ -55,6 +56,7 @@ public class FinancialGoalServiceImpl implements FinancialGoalService {
 
     @Override
     public FinancialGoalResponseDTO update(Long id, FinancialGoalRequestDTO dto) {
+        currentUserProvider.requireWriteAccess();
         FinancialGoal goal = findOwnedEntityById(id);
 
         goal.setNome(dto.nome());
@@ -79,6 +81,7 @@ public class FinancialGoalServiceImpl implements FinancialGoalService {
 
     @Override
     public void delete(Long id) {
+        currentUserProvider.requireWriteAccess();
         FinancialGoal goal = findOwnedEntityById(id);
         financialGoalRepository.delete(goal);
     }
@@ -92,14 +95,15 @@ public class FinancialGoalServiceImpl implements FinancialGoalService {
     @Override
     @Transactional(readOnly = true)
     public List<FinancialGoalResponseDTO> findAll() {
-        Long userId = currentUserProvider.getCurrentUserId();
-        return financialGoalRepository.findAllByUserId(userId).stream()
+        List<Long> scopeUserIds = currentUserProvider.getScopeUserIds();
+        return financialGoalRepository.findAllByUserIdIn(scopeUserIds).stream()
                 .map(this::toResponseWithProgresso)
                 .toList();
     }
 
     @Override
     public FinancialGoalResponseDTO updateProgress(Long id, UpdateGoalProgressRequestDTO dto) {
+        currentUserProvider.requireWriteAccess();
         FinancialGoal goal = findOwnedEntityById(id);
         if (goal.getTipo() == GoalType.INVESTIMENTO) {
             throw new BusinessException("Metas de investimento têm progresso calculado automaticamente a partir das despesas de investimento");
@@ -114,7 +118,7 @@ public class FinancialGoalServiceImpl implements FinancialGoalService {
         FinancialGoalResponseDTO base = financialGoalMapper.toResponseDto(goal);
         BigDecimal valorAtual = goal.getTipo() == GoalType.INVESTIMENTO
                 ? expenseRepository.sumValorByUserIdAndDataBetweenAndCategoriaIsInvestment(
-                        goal.getUser().getId(), goal.getDataInicio(), LocalDate.now())
+                        currentUserProvider.getScopeUserIds(), goal.getDataInicio(), LocalDate.now())
                 : goal.getValorAtual();
         BigDecimal progresso = calcularProgresso(valorAtual, goal.getValorAlvo());
         return new FinancialGoalResponseDTO(
@@ -139,8 +143,8 @@ public class FinancialGoalServiceImpl implements FinancialGoalService {
     }
 
     private FinancialGoal findOwnedEntityById(Long id) {
-        Long userId = currentUserProvider.getCurrentUserId();
-        return financialGoalRepository.findByIdAndUserId(id, userId)
+        List<Long> scopeUserIds = currentUserProvider.getScopeUserIds();
+        return financialGoalRepository.findByIdAndUserIdIn(id, scopeUserIds)
                 .orElseThrow(() -> ResourceNotFoundException.of("Meta financeira", id));
     }
 

@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import { useBankAccounts, useDeleteBankAccount } from "@/hooks/useBankAccounts";
+import { useMyFamilyGroup } from "@/hooks/useFamilyGroup";
 import { extractErrorMessage } from "@/lib/api";
 import type { BankAccount } from "@/types/bankAccount";
 import { BANK_ACCOUNT_TYPE_LABELS } from "@/types/bankAccount";
@@ -14,6 +15,8 @@ import { ContaFormModal } from "@/pages/contas/ContaFormModal";
 
 export function ContasListPage() {
   const { data, isLoading, isError } = useBankAccounts();
+  const { data: familyGroup } = useMyFamilyGroup();
+  const isViewer = familyGroup?.papelDoUsuarioAtual === "VIEWER";
   const deleteAccount = useDeleteBankAccount();
 
   const [modalState, setModalState] = useState<{ open: boolean; account: BankAccount | null }>({
@@ -39,7 +42,9 @@ export function ContasListPage() {
           <h1 className="text-xl font-semibold text-slate-900">Contas bancárias</h1>
           <p className="text-sm text-slate-500">Contas e carteiras usadas para registrar receitas e despesas.</p>
         </div>
-        <Button onClick={() => setModalState({ open: true, account: null })}>+ Nova conta</Button>
+        {!isViewer && (
+          <Button onClick={() => setModalState({ open: true, account: null })}>+ Nova conta</Button>
+        )}
       </div>
 
       <ErrorBanner message={actionError} />
@@ -61,6 +66,7 @@ export function ContasListPage() {
                   <th className="px-4 py-3 font-medium">Instituição</th>
                   <th className="px-4 py-3 font-medium">Tipo</th>
                   <th className="px-4 py-3 font-medium">Saldo atual</th>
+                  <th className="px-4 py-3 font-medium">Origem</th>
                   <th className="px-4 py-3 font-medium">Status</th>
                   <th className="px-4 py-3 font-medium text-right">Ações</th>
                 </tr>
@@ -72,6 +78,9 @@ export function ContasListPage() {
                     <td className="px-4 py-3 text-slate-600">{account.instituicao}</td>
                     <td className="px-4 py-3 text-slate-600">{BANK_ACCOUNT_TYPE_LABELS[account.tipo]}</td>
                     <td className="px-4 py-3 text-slate-600">{formatCurrency(account.saldoAtual)}</td>
+                    <td className="px-4 py-3">
+                      {account.origem === "OPEN_FINANCE" && <Badge tone="blue">Open Finance</Badge>}
+                    </td>
                     <td className="px-4 py-3">
                       <Badge tone={account.ativa ? "green" : "slate"}>{account.ativa ? "Ativa" : "Inativa"}</Badge>
                     </td>
