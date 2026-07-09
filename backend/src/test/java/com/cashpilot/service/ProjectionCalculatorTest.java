@@ -5,6 +5,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -103,6 +104,39 @@ class ProjectionCalculatorTest {
 
         assertThat(result.aporteMensal()).isEqualByComparingTo("2000.00");
         assertThat(result.mesesParaAtingir()).isEqualTo(12);
+    }
+
+    @Test
+    @DisplayName("simularEvolucaoMensal: sem aporte e sem taxa, o valor permanece constante")
+    void deveSimularEvolucaoConstanteSemAporteESemTaxa() {
+        List<BigDecimal> valores = calculator.simularEvolucaoMensal(
+                BigDecimal.valueOf(1000), BigDecimal.ZERO, BigDecimal.ZERO, 3);
+
+        assertThat(valores).hasSize(4);
+        assertThat(valores).allSatisfy(v -> assertThat(v).isEqualByComparingTo("1000.00"));
+    }
+
+    @Test
+    @DisplayName("simularEvolucaoMensal: com aporte e taxa positivos, aplica valor[n] = valor[n-1] * (1+i) + aporte")
+    void deveSimularEvolucaoComAporteETaxaPositivos() {
+        List<BigDecimal> valores = calculator.simularEvolucaoMensal(
+                BigDecimal.valueOf(1000), BigDecimal.valueOf(100), BigDecimal.valueOf(0.01), 3);
+
+        assertThat(valores).hasSize(4);
+        assertThat(valores.get(0)).isEqualByComparingTo("1000.00");
+        assertThat(valores.get(1)).isEqualByComparingTo("1110.00");   // 1000*1.01 + 100
+        assertThat(valores.get(2)).isEqualByComparingTo("1221.10");   // 1110*1.01 + 100
+        assertThat(valores.get(3)).isEqualByComparingTo("1333.31");   // 1221.10*1.01 + 100 = 1333.311
+    }
+
+    @Test
+    @DisplayName("simularEvolucaoMensal: horizonte zero retorna lista de um elemento igual ao patrimônio inicial")
+    void deveRetornarListaDeUmElementoQuandoHorizonteZero() {
+        List<BigDecimal> valores = calculator.simularEvolucaoMensal(
+                BigDecimal.valueOf(2500), BigDecimal.valueOf(200), BigDecimal.valueOf(0.02), 0);
+
+        assertThat(valores).hasSize(1);
+        assertThat(valores.get(0)).isEqualByComparingTo("2500.00");
     }
 
 }

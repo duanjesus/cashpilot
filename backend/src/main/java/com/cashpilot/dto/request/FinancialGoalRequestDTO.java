@@ -1,5 +1,6 @@
 package com.cashpilot.dto.request;
 
+import com.cashpilot.entity.enums.GoalType;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -23,7 +24,13 @@ public record FinancialGoalRequestDTO(
 
         BigDecimal valorAtual,
 
-        Boolean ativa
+        Boolean ativa,
+
+        /** Null defaults to {@code MANUAL}. */
+        GoalType tipo,
+
+        /** Null defaults to today. Only meaningful for {@code INVESTIMENTO} goals. */
+        LocalDate dataInicio
 
 ) {
 }

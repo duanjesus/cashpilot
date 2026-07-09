@@ -49,6 +49,9 @@ src/
 │   ├── dashboard/    # DashboardPage (stat tiles + Recharts charts)
 │   ├── projecao/     # ProjectionPage (net-worth projection calculator)
 │   ├── fluxo-caixa/  # FluxoCaixaPage (forward-looking projected balance chart + breakdown)
+│   ├── relatorios/   # RelatoriosPage (entradas vs. saídas bar chart + despesas por categoria pie chart)
+│   ├── previsao-saldo/ # PrevisaoSaldoPage (long-term projected balance line chart, based on historical averages)
+│   ├── simulacao/    # SimulacaoPage (compare 2-3 what-if financial scenarios side by side)
 │   └── ...           # categorias, contas, cartoes, receitas, despesas, parcelamentos, assinaturas,
 │                      # contas-a-pagar, contas-a-receber, transferencias, metas
 ├── types/           # TypeScript types mirroring the backend DTOs
@@ -66,3 +69,10 @@ CashPilot has **no roles or admin/operator split** — every authenticated user 
 - **Entradas vs. saídas**: compares the current month's totals from `/dashboard/resumo` as a two-bar chart. A true 6-month trailing history would need a dedicated backend endpoint that doesn't exist yet in this contract, so this is a deliberate simplification for V1.
 - **Despesas por categoria**: fetched client-side via `/despesas` filtered to the current month's date range, then aggregated by `categoriaNome`; slice colors use each category's `cor` field where available, falling back to a fixed palette.
 - **Tendência de fluxo de caixa**: sourced from `/dashboard/evolucao-saldo`. This is explicitly labeled in the UI as an *approximate* net cash-flow trend, not an audited balance history, since V1 stores no historical balance snapshots.
+
+## Notes on the V3 analytics pages
+
+- **Gráficos** (`/relatorios`): a 12-month entradas vs. saídas bar chart from `/relatorios/mensal`, plus a despesas-por-categoria pie chart with a user-selectable date range (fetched client-side via `/despesas`, same aggregation technique as the dashboard's pie).
+- **Previsão de saldo** (`/previsao-saldo`): a long-term balance projection line chart from `/previsao-saldo`, based on the historical average of entradas/saídas over the last N months. This is explicitly distinguished in the UI from **Fluxo de caixa**, which only projects already-known near-term items (pending expenses/incomes/subscriptions) — the two pages answer different questions and shouldn't be confused.
+- **Simulação** (`/simulacao`): compares 2-3 user-defined what-if scenarios (initial net worth, monthly contribution, monthly return rate) over a shared horizon via `POST /simulacoes/comparar`, rendered as a multi-series line chart.
+- **Exportação**: `DespesasListPage` and `ReceitasListPage` each have "Exportar Excel"/"Exportar PDF" buttons that download the currently filtered list from `/despesas/exportar` or `/receitas/exportar` (see `utils/download.ts`'s `downloadBlob` helper — needed because authenticated file downloads can't use a plain `<a href>`).

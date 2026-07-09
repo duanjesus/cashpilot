@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -110,6 +111,13 @@ public class IncomeServiceImpl implements IncomeService {
 
         Income updated = incomeRepository.save(income);
         return incomeMapper.toResponseDto(updated);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Income> findAllForExport(LocalDate dataInicio, LocalDate dataFim, Long categoriaId, Long contaId, Boolean recebida) {
+        Long userId = currentUserProvider.getCurrentUserId();
+        return incomeRepository.findAllByFiltersList(userId, dataInicio, dataFim, categoriaId, contaId, recebida);
     }
 
     private Category resolveCategoria(Long categoriaId, Long userId) {

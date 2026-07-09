@@ -15,6 +15,9 @@ const NAV_ITEMS: { to: string; label: string; end?: boolean }[] = [
   { to: "/metas", label: "Metas" },
   { to: "/categorias", label: "Categorias" },
   { to: "/projecao", label: "Projeção" },
+  { to: "/relatorios", label: "Gráficos" },
+  { to: "/previsao-saldo", label: "Previsão de saldo" },
+  { to: "/simulacao", label: "Simulação" },
 ];
 
 export function Sidebar() {

@@ -5,8 +5,11 @@ import com.cashpilot.dto.request.UpdateGoalProgressRequestDTO;
 import com.cashpilot.dto.response.FinancialGoalResponseDTO;
 import com.cashpilot.entity.FinancialGoal;
 import com.cashpilot.entity.User;
+import com.cashpilot.entity.enums.GoalType;
+import com.cashpilot.exception.BusinessException;
 import com.cashpilot.exception.ResourceNotFoundException;
 import com.cashpilot.mapper.FinancialGoalMapper;
+import com.cashpilot.repository.ExpenseRepository;
 import com.cashpilot.repository.FinancialGoalRepository;
 import com.cashpilot.security.CurrentUserProvider;
 import com.cashpilot.service.FinancialGoalService;
@@ -16,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.util.List;
 
 @Service
@@ -26,6 +30,7 @@ public class FinancialGoalServiceImpl implements FinancialGoalService {
     private static final BigDecimal HUNDRED = BigDecimal.valueOf(100);
 
     private final FinancialGoalRepository financialGoalRepository;
+    private final ExpenseRepository expenseRepository;
     private final FinancialGoalMapper financialGoalMapper;
     private final CurrentUserProvider currentUserProvider;
 
@@ -40,6 +45,8 @@ public class FinancialGoalServiceImpl implements FinancialGoalService {
                 .dataAlvo(dto.dataAlvo())
                 .valorAtual(dto.valorAtual() == null ? BigDecimal.ZERO : dto.valorAtual())
                 .ativa(dto.ativa() == null || dto.ativa())
+                .tipo(dto.tipo() == null ? GoalType.MANUAL : dto.tipo())
+                .dataInicio(dto.dataInicio() == null ? LocalDate.now() : dto.dataInicio())
                 .build();
 
         FinancialGoal saved = financialGoalRepository.save(goal);
@@ -58,6 +65,12 @@ public class FinancialGoalServiceImpl implements FinancialGoalService {
         }
         if (dto.ativa() != null) {
             goal.setAtiva(dto.ativa());
+        }
+        if (dto.tipo() != null) {
+            goal.setTipo(dto.tipo());
+        }
+        if (dto.dataInicio() != null) {
+            goal.setDataInicio(dto.dataInicio());
         }
 
         FinancialGoal updated = financialGoalRepository.save(goal);
@@ -88,6 +101,9 @@ public class FinancialGoalServiceImpl implements FinancialGoalService {
     @Override
     public FinancialGoalResponseDTO updateProgress(Long id, UpdateGoalProgressRequestDTO dto) {
         FinancialGoal goal = findOwnedEntityById(id);
+        if (goal.getTipo() == GoalType.INVESTIMENTO) {
+            throw new BusinessException("Metas de investimento têm progresso calculado automaticamente a partir das despesas de investimento");
+        }
         goal.setValorAtual(dto.valorAtual());
 
         FinancialGoal updated = financialGoalRepository.save(goal);
@@ -96,15 +112,21 @@ public class FinancialGoalServiceImpl implements FinancialGoalService {
 
     private FinancialGoalResponseDTO toResponseWithProgresso(FinancialGoal goal) {
         FinancialGoalResponseDTO base = financialGoalMapper.toResponseDto(goal);
-        BigDecimal progresso = calcularProgresso(goal.getValorAtual(), goal.getValorAlvo());
+        BigDecimal valorAtual = goal.getTipo() == GoalType.INVESTIMENTO
+                ? expenseRepository.sumValorByUserIdAndDataBetweenAndCategoriaIsInvestment(
+                        goal.getUser().getId(), goal.getDataInicio(), LocalDate.now())
+                : goal.getValorAtual();
+        BigDecimal progresso = calcularProgresso(valorAtual, goal.getValorAlvo());
         return new FinancialGoalResponseDTO(
                 base.id(),
                 base.nome(),
                 base.valorAlvo(),
                 base.dataAlvo(),
-                base.valorAtual(),
+                valorAtual,
                 base.ativa(),
-                progresso
+                progresso,
+                base.tipo(),
+                base.dataInicio()
         );
     }
 

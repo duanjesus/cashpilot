@@ -285,6 +285,31 @@ Append-only: só é possível registrar, listar e excluir — não há edição.
 | POST   | `/api/v1/projecao/calcular`         | Calcular quando o patrimônio alvo será atingido; salva a simulação    |
 | GET    | `/api/v1/projecao/ultima-simulacao` | Buscar a última simulação salva do usuário (404 se nunca simulou)     |
 
+### Relatórios — `/api/v1/relatorios`
+
+| Method | Route                        | Description                                                                                                   |
+|--------|--------------------------------|--------------------------------------------------------------------------------------------------------------------|
+| GET    | `/api/v1/relatorios/mensal`     | Relatório mensal (entradas, saídas, investimentos, saldo líquido) dos últimos N meses (`?meses=`, padrão 12)       |
+
+### Previsão de Saldo — `/api/v1/previsao-saldo`
+
+| Method | Route                      | Description                                                                                                                             |
+|--------|------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------|
+| GET    | `/api/v1/previsao-saldo`     | Projeta o saldo futuro a partir da média mensal histórica de saldo líquido (`?mesesHistorico=`, padrão 6; `?mesesProjecao=`, padrão 12)    |
+
+### Simulação Financeira — `/api/v1/simulacoes`
+
+| Method | Route                          | Description                                                                                                              |
+|--------|-----------------------------------|--------------------------------------------------------------------------------------------------------------------------|
+| POST   | `/api/v1/simulacoes/comparar`     | Compara de 2 a 3 cenários (patrimônio inicial, aporte mensal, taxa de retorno mensal) ao longo de um horizonte em meses  |
+
+### Exportação — `/api/v1/despesas/exportar` e `/api/v1/receitas/exportar`
+
+| Method | Route                        | Description                                                                                                                          |
+|--------|--------------------------------|------------------------------------------------------------------------------------------------------------------------------------------|
+| GET    | `/api/v1/despesas/exportar`     | Exporta despesas filtradas em Excel ou PDF (`?formato=xlsx\|pdf`, mais os mesmos filtros opcionais de `GET /api/v1/despesas`)             |
+| GET    | `/api/v1/receitas/exportar`     | Exporta receitas filtradas em Excel ou PDF (`?formato=xlsx\|pdf`, mais os mesmos filtros opcionais de `GET /api/v1/receitas`)             |
+
 ---
 
 ## 🌱 Commit convention

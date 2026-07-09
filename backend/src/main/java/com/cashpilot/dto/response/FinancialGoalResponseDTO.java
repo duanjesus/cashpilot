@@ -1,5 +1,7 @@
 package com.cashpilot.dto.response;
 
+import com.cashpilot.entity.enums.GoalType;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
@@ -10,6 +12,8 @@ public record FinancialGoalResponseDTO(
         LocalDate dataAlvo,
         BigDecimal valorAtual,
         Boolean ativa,
-        BigDecimal progresso
+        BigDecimal progresso,
+        GoalType tipo,
+        LocalDate dataInicio
 ) {
 }

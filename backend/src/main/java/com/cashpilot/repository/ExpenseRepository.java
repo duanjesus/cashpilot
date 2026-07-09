@@ -59,6 +59,27 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
 
     @Query("""
             SELECT e FROM Expense e
+            LEFT JOIN FETCH e.categoria
+            LEFT JOIN FETCH e.contaBancaria
+            LEFT JOIN FETCH e.cartaoCredito
+            WHERE e.user.id = :userId
+              AND (CAST(:dataInicio AS date) IS NULL OR e.data >= :dataInicio)
+              AND (CAST(:dataFim AS date) IS NULL OR e.data <= :dataFim)
+              AND (CAST(:categoriaId AS long) IS NULL OR e.categoria.id = :categoriaId)
+              AND (CAST(:contaId AS long) IS NULL OR e.contaBancaria.id = :contaId)
+              AND (CAST(:cartaoId AS long) IS NULL OR e.cartaoCredito.id = :cartaoId)
+              AND (CAST(:paga AS boolean) IS NULL OR e.paga = :paga)
+            """)
+    List<Expense> findAllByFiltersList(@Param("userId") Long userId,
+                                        @Param("dataInicio") LocalDate dataInicio,
+                                        @Param("dataFim") LocalDate dataFim,
+                                        @Param("categoriaId") Long categoriaId,
+                                        @Param("contaId") Long contaId,
+                                        @Param("cartaoId") Long cartaoId,
+                                        @Param("paga") Boolean paga);
+
+    @Query("""
+            SELECT e FROM Expense e
             WHERE e.user.id = :userId AND e.data BETWEEN :dataInicio AND :dataFim
             """)
     List<Expense> findAllByUserIdAndDataBetween(@Param("userId") Long userId,

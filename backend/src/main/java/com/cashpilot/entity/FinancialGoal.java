@@ -1,7 +1,10 @@
 package com.cashpilot.entity;
 
+import com.cashpilot.entity.enums.GoalType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
@@ -49,5 +52,13 @@ public class FinancialGoal extends BaseEntity {
     @Column(nullable = false)
     @Builder.Default
     private Boolean ativa = true;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    @Builder.Default
+    private GoalType tipo = GoalType.MANUAL;
+
+    @Column(name = "data_inicio", nullable = false)
+    private LocalDate dataInicio;
 
 }

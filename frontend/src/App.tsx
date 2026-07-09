@@ -18,6 +18,9 @@ import { AssinaturasListPage } from "@/pages/assinaturas/AssinaturasListPage";
 import { FluxoCaixaPage } from "@/pages/fluxo-caixa/FluxoCaixaPage";
 import { ContasAPagarPage } from "@/pages/contas-a-pagar/ContasAPagarPage";
 import { ContasAReceberPage } from "@/pages/contas-a-receber/ContasAReceberPage";
+import { RelatoriosPage } from "@/pages/relatorios/RelatoriosPage";
+import { PrevisaoSaldoPage } from "@/pages/previsao-saldo/PrevisaoSaldoPage";
+import { SimulacaoPage } from "@/pages/simulacao/SimulacaoPage";
 
 export default function App() {
   return (
@@ -41,6 +44,9 @@ export default function App() {
           <Route path="/contas-a-receber" element={<ContasAReceberPage />} />
           <Route path="/metas" element={<MetasListPage />} />
           <Route path="/projecao" element={<ProjectionPage />} />
+          <Route path="/relatorios" element={<RelatoriosPage />} />
+          <Route path="/previsao-saldo" element={<PrevisaoSaldoPage />} />
+          <Route path="/simulacao" element={<SimulacaoPage />} />
         </Route>
       </Route>
 

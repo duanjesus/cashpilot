@@ -4,9 +4,10 @@ import { useCategories } from "@/hooks/useCategories";
 import { useBankAccounts } from "@/hooks/useBankAccounts";
 import { useDeleteIncome, useIncomes, useMarkIncomeReceived } from "@/hooks/useIncomes";
 import { usePaginationState } from "@/hooks/usePaginationState";
-import { extractErrorMessage } from "@/lib/api";
+import { api, extractErrorMessage } from "@/lib/api";
 import type { Income, IncomeFilters } from "@/types/income";
 import { formatCurrency, formatDate, todayIsoDate } from "@/utils/format";
+import { downloadBlob } from "@/utils/download";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Select } from "@/components/ui/Select";
@@ -47,6 +48,28 @@ export function ReceitasListPage({ initialFilters, title, description }: Receita
     income: null,
   });
   const [actionError, setActionError] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
+
+  async function handleExport(formato: "xlsx" | "pdf") {
+    setActionError(null);
+    setIsExporting(true);
+    try {
+      const response = await api.get("/receitas/exportar", {
+        responseType: "blob",
+        params: {
+          formato,
+          categoriaId: categoriaId ? Number(categoriaId) : undefined,
+          contaId: contaId ? Number(contaId) : undefined,
+          recebida: recebida ? recebida === "true" : undefined,
+        },
+      });
+      downloadBlob(response.data, `receitas.${formato}`);
+    } catch (error) {
+      setActionError(extractErrorMessage(error));
+    } finally {
+      setIsExporting(false);
+    }
+  }
 
   async function handleDelete(income: Income) {
     if (!window.confirm(`Excluir a receita "${income.descricao}"?`)) return;
@@ -76,7 +99,15 @@ export function ReceitasListPage({ initialFilters, title, description }: Receita
             {description ?? "Entradas de dinheiro registradas nas suas contas."}
           </p>
         </div>
-        <Button onClick={() => setModalState({ open: true, income: null })}>+ Nova receita</Button>
+        <div className="flex items-center gap-2">
+          <Button variant="secondary" isLoading={isExporting} onClick={() => handleExport("xlsx")}>
+            Exportar Excel
+          </Button>
+          <Button variant="secondary" isLoading={isExporting} onClick={() => handleExport("pdf")}>
+            Exportar PDF
+          </Button>
+          <Button onClick={() => setModalState({ open: true, income: null })}>+ Nova receita</Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">

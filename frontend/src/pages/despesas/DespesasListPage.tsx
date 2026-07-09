@@ -5,9 +5,10 @@ import { useBankAccounts } from "@/hooks/useBankAccounts";
 import { useCreditCards } from "@/hooks/useCreditCards";
 import { useDeleteExpense, useExpenses, useMarkExpensePaid } from "@/hooks/useExpenses";
 import { usePaginationState } from "@/hooks/usePaginationState";
-import { extractErrorMessage } from "@/lib/api";
+import { api, extractErrorMessage } from "@/lib/api";
 import type { Expense, ExpenseFilters } from "@/types/expense";
 import { formatCurrency, formatDate, todayIsoDate } from "@/utils/format";
+import { downloadBlob } from "@/utils/download";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Select } from "@/components/ui/Select";
@@ -57,6 +58,29 @@ export function DespesasListPage({ initialFilters, initialSort, title, descripti
     expense: null,
   });
   const [actionError, setActionError] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
+
+  async function handleExport(formato: "xlsx" | "pdf") {
+    setActionError(null);
+    setIsExporting(true);
+    try {
+      const response = await api.get("/despesas/exportar", {
+        responseType: "blob",
+        params: {
+          formato,
+          categoriaId: categoriaId ? Number(categoriaId) : undefined,
+          contaId: contaId ? Number(contaId) : undefined,
+          cartaoId: cartaoId ? Number(cartaoId) : undefined,
+          paga: paga ? paga === "true" : undefined,
+        },
+      });
+      downloadBlob(response.data, `despesas.${formato}`);
+    } catch (error) {
+      setActionError(extractErrorMessage(error));
+    } finally {
+      setIsExporting(false);
+    }
+  }
 
   async function handleDelete(expense: Expense) {
     if (!window.confirm(`Excluir a despesa "${expense.descricao}"?`)) return;
@@ -92,7 +116,15 @@ export function DespesasListPage({ initialFilters, initialSort, title, descripti
             {description ?? "Saídas de dinheiro pagas por conta ou cartão de crédito."}
           </p>
         </div>
-        <Button onClick={() => setModalState({ open: true, expense: null })}>+ Nova despesa</Button>
+        <div className="flex items-center gap-2">
+          <Button variant="secondary" isLoading={isExporting} onClick={() => handleExport("xlsx")}>
+            Exportar Excel
+          </Button>
+          <Button variant="secondary" isLoading={isExporting} onClick={() => handleExport("pdf")}>
+            Exportar PDF
+          </Button>
+          <Button onClick={() => setModalState({ open: true, expense: null })}>+ Nova despesa</Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">

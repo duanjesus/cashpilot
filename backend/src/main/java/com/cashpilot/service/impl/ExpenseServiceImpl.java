@@ -25,6 +25,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -119,6 +120,14 @@ public class ExpenseServiceImpl implements ExpenseService {
 
         Expense updated = expenseRepository.save(expense);
         return expenseMapper.toResponseDto(updated);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Expense> findAllForExport(LocalDate dataInicio, LocalDate dataFim, Long categoriaId, Long contaId,
+                                           Long cartaoId, Boolean paga) {
+        Long userId = currentUserProvider.getCurrentUserId();
+        return expenseRepository.findAllByFiltersList(userId, dataInicio, dataFim, categoriaId, contaId, cartaoId, paga);
     }
 
     private void validateFormaPagamento(Long contaBancariaId, Long cartaoCreditoId) {

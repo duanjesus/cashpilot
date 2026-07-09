@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useDeleteGoal, useGoals } from "@/hooks/useGoals";
 import { extractErrorMessage } from "@/lib/api";
 import type { Goal } from "@/types/goal";
+import { GOAL_TYPE_LABELS } from "@/types/goal";
 import { formatCurrency, formatDate, formatPercent } from "@/utils/format";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -59,7 +60,12 @@ export function MetasListPage() {
             <div key={goal.id} className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
               <div className="flex items-start justify-between">
                 <h2 className="font-semibold text-slate-900">{goal.nome}</h2>
-                <Badge tone={goal.ativa ? "green" : "slate"}>{goal.ativa ? "Ativa" : "Inativa"}</Badge>
+                <div className="flex flex-col items-end gap-1">
+                  <Badge tone={goal.ativa ? "green" : "slate"}>{goal.ativa ? "Ativa" : "Inativa"}</Badge>
+                  {goal.tipo === "INVESTIMENTO" && (
+                    <Badge tone="blue">{GOAL_TYPE_LABELS[goal.tipo]} · automático</Badge>
+                  )}
+                </div>
               </div>
               <div className="text-sm text-slate-500">
                 Alvo: {formatCurrency(goal.valorAlvo)} até {formatDate(goal.dataAlvo)}
@@ -75,9 +81,11 @@ export function MetasListPage() {
               </div>
               <div className="text-xs text-slate-500">{formatPercent(goal.progresso)} concluído</div>
               <div className="mt-2 flex flex-wrap justify-end gap-2">
-                <Button variant="secondary" onClick={() => setProgressGoal(goal)}>
-                  Atualizar progresso
-                </Button>
+                {goal.tipo !== "INVESTIMENTO" && (
+                  <Button variant="secondary" onClick={() => setProgressGoal(goal)}>
+                    Atualizar progresso
+                  </Button>
+                )}
                 <Button variant="secondary" onClick={() => setModalState({ open: true, goal })}>
                   Editar
                 </Button>

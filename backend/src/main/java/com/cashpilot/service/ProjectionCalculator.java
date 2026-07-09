@@ -6,6 +6,8 @@ import org.springframework.stereotype.Component;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Pure math for "when will I reach my net-worth target" projections. No persistence
@@ -73,6 +75,28 @@ public class ProjectionCalculator {
             n = 0;
         }
         return build(n, a, patrimonio, i, alvo);
+    }
+
+    /**
+     * Simula a evolução patrimonial mês a mês: {@code valor[0] = patrimonioInicial} e,
+     * para cada mês seguinte, {@code valor[n] = valor[n-1] * (1 + taxaRetornoMensal) + aporteMensal}.
+     * Usado pela Simulação Financeira (comparação de cenários), independente do
+     * {@link #calculate} usado pela Projeção de patrimônio-alvo.
+     */
+    public List<BigDecimal> simularEvolucaoMensal(BigDecimal patrimonioInicial, BigDecimal aporteMensal,
+                                                   BigDecimal taxaRetornoMensal, int horizonteMeses) {
+        double aporte = toDouble(aporteMensal);
+        double i = toDouble(taxaRetornoMensal);
+
+        List<BigDecimal> valores = new ArrayList<>(horizonteMeses + 1);
+        double valorAtual = toDouble(patrimonioInicial);
+        valores.add(toBigDecimal(valorAtual));
+
+        for (int n = 1; n <= horizonteMeses; n++) {
+            valorAtual = valorAtual * (1 + i) + aporte;
+            valores.add(toBigDecimal(valorAtual));
+        }
+        return valores;
     }
 
     private int simulateMonthsUntilReached(double patrimonioInicial, double aporte, double i, double alvo, int maxMeses) {
