@@ -1,0 +1,48 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: cashpilot-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: cashpilot_db
+      POSTGRES_USER: cashpilot_user
+      POSTGRES_PASSWORD: cashpilot_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - cashpilot-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cashpilot_user -d cashpilot_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build: ./backend
+    container_name: cashpilot-api
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: cashpilot_db
+      DB_USER: cashpilot_user
+      DB_PASSWORD: cashpilot_pass
+      JWT_SECRET: ${JWT_SECRET:-Y2FzaHBpbG90LWFwaS1zdXBlci1zZWNyZXQta2V5LWNoYW5nZS1pbi1wcm9kdWN0aW9u}
+      JWT_EXPIRATION_MS: ${JWT_EXPIRATION_MS:-86400000}
+    ports:
+      - "8080:8080"
+
+  web:
+    build: ./frontend
+    container_name: cashpilot-web
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "3000:80"
+
+volumes:
+  cashpilot-db-data:
