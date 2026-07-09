@@ -205,7 +205,8 @@ Every endpoint below (except `/api/v1/auth/**` and Swagger) requires a valid JWT
 | PUT    | `/api/v1/receitas/{id}`      | Editar receita                                                                    |
 | DELETE | `/api/v1/receitas/{id}`      | Excluir receita                                                                    |
 | GET    | `/api/v1/receitas/{id}`      | Buscar receita por ID                                                              |
-| GET    | `/api/v1/receitas`           | Listar receitas (paginado; filtros opcionais `dataInicio`, `dataFim`, `categoriaId`, `contaId`) |
+| GET    | `/api/v1/receitas`           | Listar receitas (paginado; filtros opcionais `dataInicio`, `dataFim`, `categoriaId`, `contaId`, `recebida`) |
+| PATCH  | `/api/v1/receitas/{id}/receber` | Marcar receita como recebida (`dataRecebimento` opcional no corpo, padrão hoje)             |
 
 ### Despesas — `/api/v1/despesas`
 
@@ -217,6 +218,36 @@ Every endpoint below (except `/api/v1/auth/**` and Swagger) requires a valid JWT
 | GET    | `/api/v1/despesas/{id}`            | Buscar despesa por ID                                                                                  |
 | GET    | `/api/v1/despesas`                 | Listar despesas (paginado; filtros opcionais `dataInicio`, `dataFim`, `categoriaId`, `contaId`, `cartaoId`, `paga`) |
 | PATCH  | `/api/v1/despesas/{id}/pagar`      | Marcar despesa como paga (`dataPagamento` opcional no corpo, padrão hoje)                             |
+
+### Parcelamentos — `/api/v1/parcelamentos`
+
+Cadastrar um parcelamento gera automaticamente as despesas de todas as parcelas (dividindo `valorTotal` igualmente, com o resto de arredondamento na última parcela). Não há edição — corrija excluindo e recadastrando.
+
+| Method | Route                              | Description                                                                                     |
+|--------|--------------------------------------|------------------------------------------------------------------------------------------------------|
+| POST   | `/api/v1/parcelamentos`              | Cadastrar parcelamento (gera as despesas das parcelas automaticamente)                              |
+| DELETE | `/api/v1/parcelamentos/{id}`         | Excluir parcelamento (bloqueado se houver parcelas já pagas)                                          |
+| GET    | `/api/v1/parcelamentos/{id}`         | Buscar parcelamento por ID (com progresso: `parcelasPagas`, `valorPago`, `valorRestante`, `quitado`) |
+| GET    | `/api/v1/parcelamentos`              | Listar parcelamentos (paginado)                                                                       |
+
+### Assinaturas — `/api/v1/assinaturas`
+
+Assinaturas recorrentes geram despesas mensais automaticamente (cron diário, 02:00) ou sob demanda via `/gerar-pendentes`. A geração é idempotente por `(assinaturaId, referenciaMes)` — rodar duas vezes no mesmo mês nunca duplica a cobrança.
+
+| Method | Route                                   | Description                                                          |
+|--------|--------------------------------------------|----------------------------------------------------------------------|
+| POST   | `/api/v1/assinaturas`                      | Cadastrar assinatura recorrente                                       |
+| PUT    | `/api/v1/assinaturas/{id}`                 | Editar assinatura recorrente                                          |
+| DELETE | `/api/v1/assinaturas/{id}`                 | Excluir assinatura (despesas já geradas são preservadas)              |
+| GET    | `/api/v1/assinaturas/{id}`                 | Buscar assinatura por ID                                              |
+| GET    | `/api/v1/assinaturas`                      | Listar assinaturas do usuário                                         |
+| POST   | `/api/v1/assinaturas/gerar-pendentes`      | Gerar manualmente as cobranças pendentes das assinaturas ativas       |
+
+### Fluxo de Caixa — `/api/v1/fluxo-caixa`
+
+| Method | Route                       | Description                                                                                                    |
+|--------|-------------------------------|----------------------------------------------------------------------------------------------------------------------|
+| GET    | `/api/v1/fluxo-caixa`          | Projeção de saldo futuro (`?dias=`, padrão 30) combinando despesas/receitas pendentes e cobranças de assinaturas ainda não geradas |
 
 ### Transferências — `/api/v1/transferencias`
 

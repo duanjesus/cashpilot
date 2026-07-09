@@ -4,16 +4,14 @@ import com.cashpilot.dto.response.DashboardSummaryResponseDTO;
 import com.cashpilot.dto.response.EvolucaoSaldoPointDTO;
 import com.cashpilot.dto.response.MetaPrincipalResponseDTO;
 import com.cashpilot.dto.response.ProximaContaResponseDTO;
-import com.cashpilot.entity.BankAccount;
 import com.cashpilot.entity.Expense;
 import com.cashpilot.entity.FinancialGoal;
 import com.cashpilot.entity.Income;
-import com.cashpilot.repository.BankAccountRepository;
 import com.cashpilot.repository.ExpenseRepository;
 import com.cashpilot.repository.FinancialGoalRepository;
 import com.cashpilot.repository.IncomeRepository;
-import com.cashpilot.repository.TransferRepository;
 import com.cashpilot.security.CurrentUserProvider;
+import com.cashpilot.service.BankAccountService;
 import com.cashpilot.service.DashboardService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -35,10 +33,9 @@ public class DashboardServiceImpl implements DashboardService {
 
     private static final BigDecimal HUNDRED = BigDecimal.valueOf(100);
 
-    private final BankAccountRepository bankAccountRepository;
+    private final BankAccountService bankAccountService;
     private final IncomeRepository incomeRepository;
     private final ExpenseRepository expenseRepository;
-    private final TransferRepository transferRepository;
     private final FinancialGoalRepository financialGoalRepository;
     private final CurrentUserProvider currentUserProvider;
 
@@ -52,7 +49,7 @@ public class DashboardServiceImpl implements DashboardService {
     public DashboardSummaryResponseDTO getResumo() {
         Long userId = currentUserProvider.getCurrentUserId();
 
-        BigDecimal saldoAtual = calcularSaldoAtualTotal(userId);
+        BigDecimal saldoAtual = bankAccountService.getSaldoAtualTotal();
 
         LocalDate hoje = LocalDate.now();
         LocalDate primeiroDiaMes = hoje.withDayOfMonth(1);
@@ -107,27 +104,6 @@ public class DashboardServiceImpl implements DashboardService {
             pontos.add(new EvolucaoSaldoPointDTO(entry.getKey(), acumulado));
         }
         return pontos;
-    }
-
-    private BigDecimal calcularSaldoAtualTotal(Long userId) {
-        return bankAccountRepository.findAllByUserId(userId).stream()
-                .filter(BankAccount::getAtiva)
-                .map(this::calcularSaldoAtual)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-    }
-
-    private BigDecimal calcularSaldoAtual(BankAccount account) {
-        Long contaId = account.getId();
-        BigDecimal entradas = incomeRepository.sumValorByContaBancariaId(contaId);
-        BigDecimal saidas = expenseRepository.sumValorByContaBancariaId(contaId);
-        BigDecimal transferenciasSaida = transferRepository.sumValorByContaOrigemId(contaId);
-        BigDecimal transferenciasEntrada = transferRepository.sumValorByContaDestinoId(contaId);
-
-        return account.getSaldoInicial()
-                .add(entradas)
-                .subtract(saidas)
-                .subtract(transferenciasSaida)
-                .add(transferenciasEntrada);
     }
 
     private MetaPrincipalResponseDTO toMetaPrincipal(FinancialGoal goal) {

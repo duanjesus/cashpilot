@@ -9,6 +9,8 @@ export interface Income {
   categoriaNome: string;
   contaBancariaId: number;
   contaBancariaNome: string;
+  recebida: boolean;
+  dataRecebimento: string | null;
 }
 
 export interface IncomeRequest {
@@ -28,4 +30,9 @@ export interface IncomeFilters {
   dataFim?: string;
   categoriaId?: number;
   contaId?: number;
+  recebida?: boolean;
+}
+
+export interface MarkIncomeReceivedRequest {
+  dataRecebimento?: string | null;
 }

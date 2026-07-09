@@ -23,6 +23,7 @@ const schema = z.object({
   categoriaId: z.coerce.number({ invalid_type_error: "Selecione uma categoria" }),
   contaBancariaId: z.coerce.number({ invalid_type_error: "Selecione uma conta" }),
   recorrente: z.boolean(),
+  recebida: z.boolean(),
   observacoes: z.string().max(500).optional().or(z.literal("")),
 });
 
@@ -56,6 +57,7 @@ export function ReceitaFormModal({ income, onClose }: ReceitaFormModalProps) {
       categoriaId: income?.categoriaId ?? undefined,
       contaBancariaId: income?.contaBancariaId ?? undefined,
       recorrente: income?.recorrente ?? false,
+      recebida: income?.recebida ?? true,
       observacoes: income?.observacoes ?? "",
     },
   });
@@ -69,6 +71,7 @@ export function ReceitaFormModal({ income, onClose }: ReceitaFormModalProps) {
       categoriaId: values.categoriaId,
       contaBancariaId: values.contaBancariaId,
       recorrente: values.recorrente,
+      recebida: values.recebida,
       observacoes: values.observacoes || undefined,
     };
 
@@ -139,6 +142,10 @@ export function ReceitaFormModal({ income, onClose }: ReceitaFormModalProps) {
         <label className="flex items-center gap-2 text-sm text-slate-700">
           <input type="checkbox" className="h-4 w-4 rounded border-slate-300" {...register("recorrente")} />
           Receita recorrente
+        </label>
+        <label className="flex items-center gap-2 text-sm text-slate-700">
+          <input type="checkbox" className="h-4 w-4 rounded border-slate-300" {...register("recebida")} />
+          Já recebida
         </label>
         <div className="mt-2 flex justify-end gap-2">
           <Button type="button" variant="secondary" onClick={onClose}>

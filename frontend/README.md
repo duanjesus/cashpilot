@@ -48,7 +48,9 @@ src/
 │   ├── auth/        # LoginPage, RegisterPage
 │   ├── dashboard/    # DashboardPage (stat tiles + Recharts charts)
 │   ├── projecao/     # ProjectionPage (net-worth projection calculator)
-│   └── ...           # categorias, contas, cartoes, receitas, despesas, transferencias, metas
+│   ├── fluxo-caixa/  # FluxoCaixaPage (forward-looking projected balance chart + breakdown)
+│   └── ...           # categorias, contas, cartoes, receitas, despesas, parcelamentos, assinaturas,
+│                      # contas-a-pagar, contas-a-receber, transferencias, metas
 ├── types/           # TypeScript types mirroring the backend DTOs
 └── utils/           # Formatting helpers (dates, currency, percentages)
 ```

@@ -45,6 +45,20 @@ public class Expense extends BaseEntity {
     @JoinColumn(name = "cartao_credito_id")
     private CreditCard cartaoCredito;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parcelamento_id")
+    private Parcelamento parcelamento;
+
+    @Column(name = "numero_parcela")
+    private Integer numeroParcela;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "assinatura_id")
+    private Subscription assinatura;
+
+    @Column(name = "referencia_mes")
+    private LocalDate referenciaMes;
+
     @Column(nullable = false, length = 200)
     private String descricao;
 

@@ -2,11 +2,11 @@ import { useState } from "react";
 
 import { useCategories } from "@/hooks/useCategories";
 import { useBankAccounts } from "@/hooks/useBankAccounts";
-import { useDeleteIncome, useIncomes } from "@/hooks/useIncomes";
+import { useDeleteIncome, useIncomes, useMarkIncomeReceived } from "@/hooks/useIncomes";
 import { usePaginationState } from "@/hooks/usePaginationState";
 import { extractErrorMessage } from "@/lib/api";
-import type { Income } from "@/types/income";
-import { formatCurrency, formatDate } from "@/utils/format";
+import type { Income, IncomeFilters } from "@/types/income";
+import { formatCurrency, formatDate, todayIsoDate } from "@/utils/format";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Select } from "@/components/ui/Select";
@@ -16,10 +16,19 @@ import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { Pagination } from "@/components/ui/Pagination";
 import { ReceitaFormModal } from "@/pages/receitas/ReceitaFormModal";
 
-export function ReceitasListPage() {
+interface ReceitasListPageProps {
+  initialFilters?: Partial<IncomeFilters>;
+  title?: string;
+  description?: string;
+}
+
+export function ReceitasListPage({ initialFilters, title, description }: ReceitasListPageProps) {
   const { page, size, setPage } = usePaginationState();
   const [categoriaId, setCategoriaId] = useState<string>("");
   const [contaId, setContaId] = useState<string>("");
+  const [recebida, setRecebida] = useState<string>(
+    initialFilters?.recebida === undefined ? "" : String(initialFilters.recebida),
+  );
 
   const { data: categories } = useCategories();
   const { data: accounts } = useBankAccounts();
@@ -28,8 +37,10 @@ export function ReceitasListPage() {
     size,
     categoriaId: categoriaId ? Number(categoriaId) : undefined,
     contaId: contaId ? Number(contaId) : undefined,
+    recebida: recebida ? recebida === "true" : undefined,
   });
   const deleteIncome = useDeleteIncome();
+  const markReceived = useMarkIncomeReceived();
 
   const [modalState, setModalState] = useState<{ open: boolean; income: Income | null }>({
     open: false,
@@ -47,17 +58,28 @@ export function ReceitasListPage() {
     }
   }
 
+  async function handleMarkReceived(income: Income) {
+    setActionError(null);
+    try {
+      await markReceived.mutateAsync({ id: income.id, payload: { dataRecebimento: todayIsoDate() } });
+    } catch (error) {
+      setActionError(extractErrorMessage(error));
+    }
+  }
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-slate-900">Receitas</h1>
-          <p className="text-sm text-slate-500">Entradas de dinheiro registradas nas suas contas.</p>
+          <h1 className="text-xl font-semibold text-slate-900">{title ?? "Receitas"}</h1>
+          <p className="text-sm text-slate-500">
+            {description ?? "Entradas de dinheiro registradas nas suas contas."}
+          </p>
         </div>
         <Button onClick={() => setModalState({ open: true, income: null })}>+ Nova receita</Button>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Select
           label="Filtrar por categoria"
           value={categoriaId}
@@ -88,6 +110,18 @@ export function ReceitasListPage() {
             </option>
           ))}
         </Select>
+        <Select
+          label="Filtrar por status"
+          value={recebida}
+          onChange={(e) => {
+            setRecebida(e.target.value);
+            setPage(0);
+          }}
+        >
+          <option value="">Todas</option>
+          <option value="true">Recebidas</option>
+          <option value="false">Pendentes</option>
+        </Select>
       </div>
 
       <ErrorBanner message={actionError} />
@@ -110,6 +144,7 @@ export function ReceitasListPage() {
                   <th className="px-4 py-3 font-medium">Conta</th>
                   <th className="px-4 py-3 font-medium">Data</th>
                   <th className="px-4 py-3 font-medium">Valor</th>
+                  <th className="px-4 py-3 font-medium">Status</th>
                   <th className="px-4 py-3 font-medium text-right">Ações</th>
                 </tr>
               </thead>
@@ -127,7 +162,21 @@ export function ReceitasListPage() {
                     <td className="px-4 py-3 text-slate-600">{formatDate(income.data)}</td>
                     <td className="px-4 py-3 font-medium text-green-700">{formatCurrency(income.valor)}</td>
                     <td className="px-4 py-3">
+                      <Badge tone={income.recebida ? "green" : "amber"}>
+                        {income.recebida ? "Recebida" : "Pendente"}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-3">
                       <div className="flex justify-end gap-2">
+                        {!income.recebida && (
+                          <Button
+                            variant="secondary"
+                            onClick={() => handleMarkReceived(income)}
+                            isLoading={markReceived.isPending}
+                          >
+                            Marcar recebida
+                          </Button>
+                        )}
                         <Button variant="secondary" onClick={() => setModalState({ open: true, income })}>
                           Editar
                         </Button>

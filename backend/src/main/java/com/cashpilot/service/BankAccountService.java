@@ -3,6 +3,7 @@ package com.cashpilot.service;
 import com.cashpilot.dto.request.BankAccountRequestDTO;
 import com.cashpilot.dto.response.BankAccountResponseDTO;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 public interface BankAccountService {
@@ -16,5 +17,8 @@ public interface BankAccountService {
     BankAccountResponseDTO findById(Long id);
 
     List<BankAccountResponseDTO> findAll();
+
+    /** Sum of {@code saldoAtual} across the current user's active accounts. */
+    BigDecimal getSaldoAtualTotal();
 
 }

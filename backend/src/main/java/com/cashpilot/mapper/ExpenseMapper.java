@@ -14,6 +14,8 @@ public interface ExpenseMapper {
     @Mapping(source = "contaBancaria.nome", target = "contaBancariaNome")
     @Mapping(source = "cartaoCredito.id", target = "cartaoCreditoId")
     @Mapping(source = "cartaoCredito.nome", target = "cartaoCreditoNome")
+    @Mapping(source = "parcelamento.id", target = "parcelamentoId")
+    @Mapping(source = "assinatura.id", target = "assinaturaId")
     ExpenseResponseDTO toResponseDto(Expense entity);
 
 }

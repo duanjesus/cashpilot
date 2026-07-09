@@ -16,6 +16,10 @@ public record ExpenseResponseDTO(
         Long contaBancariaId,
         String contaBancariaNome,
         Long cartaoCreditoId,
-        String cartaoCreditoNome
+        String cartaoCreditoNome,
+        Long parcelamentoId,
+        Integer numeroParcela,
+        Long assinaturaId,
+        LocalDate referenciaMes
 ) {
 }

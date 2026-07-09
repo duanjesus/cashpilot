@@ -52,3 +52,5 @@ cashpilot:
   dashboard:
     proximas-contas-dias: 7
     evolucao-saldo-dias-padrao: 30
+  fluxo-caixa:
+    dias-padrao: 30

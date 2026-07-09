@@ -4,7 +4,7 @@ import { api } from "@/lib/api";
 import { BANK_ACCOUNTS_KEY } from "@/hooks/useBankAccounts";
 import { DASHBOARD_KEY } from "@/hooks/useDashboard";
 import type { Page } from "@/types/common";
-import type { Income, IncomeFilters, IncomeRequest } from "@/types/income";
+import type { Income, IncomeFilters, IncomeRequest, MarkIncomeReceivedRequest } from "@/types/income";
 
 const KEY = "incomes";
 
@@ -62,6 +62,17 @@ export function useDeleteIncome() {
   return useMutation({
     mutationFn: async (id: number) => {
       await api.delete(`/receitas/${id}`);
+    },
+    onSuccess: () => invalidateAffected(queryClient),
+  });
+}
+
+export function useMarkIncomeReceived() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, payload }: { id: number; payload: MarkIncomeReceivedRequest }) => {
+      const { data } = await api.patch<Income>(`/receitas/${id}/receber`, payload);
+      return data;
     },
     onSuccess: () => invalidateAffected(queryClient),
   });

@@ -6,7 +6,7 @@ import { useCreditCards } from "@/hooks/useCreditCards";
 import { useDeleteExpense, useExpenses, useMarkExpensePaid } from "@/hooks/useExpenses";
 import { usePaginationState } from "@/hooks/usePaginationState";
 import { extractErrorMessage } from "@/lib/api";
-import type { Expense } from "@/types/expense";
+import type { Expense, ExpenseFilters } from "@/types/expense";
 import { formatCurrency, formatDate, todayIsoDate } from "@/utils/format";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -17,12 +17,19 @@ import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { Pagination } from "@/components/ui/Pagination";
 import { DespesaFormModal } from "@/pages/despesas/DespesaFormModal";
 
-export function DespesasListPage() {
+interface DespesasListPageProps {
+  initialFilters?: Partial<ExpenseFilters>;
+  initialSort?: "data,asc" | "data,desc";
+  title?: string;
+  description?: string;
+}
+
+export function DespesasListPage({ initialFilters, initialSort, title, description }: DespesasListPageProps) {
   const { page, size, setPage } = usePaginationState();
   const [categoriaId, setCategoriaId] = useState<string>("");
   const [contaId, setContaId] = useState<string>("");
   const [cartaoId, setCartaoId] = useState<string>("");
-  const [paga, setPaga] = useState<string>("");
+  const [paga, setPaga] = useState<string>(initialFilters?.paga === undefined ? "" : String(initialFilters.paga));
 
   const { data: categories } = useCategories();
   const { data: accounts } = useBankAccounts();
@@ -35,6 +42,13 @@ export function DespesasListPage() {
     cartaoId: cartaoId ? Number(cartaoId) : undefined,
     paga: paga ? paga === "true" : undefined,
   });
+  const sortedContent = data
+    ? [...data.content].sort((a, b) => {
+        if (!initialSort) return 0;
+        const direction = initialSort === "data,asc" ? 1 : -1;
+        return a.data.localeCompare(b.data) * direction;
+      })
+    : [];
   const deleteExpense = useDeleteExpense();
   const markPaid = useMarkExpensePaid();
 
@@ -73,8 +87,10 @@ export function DespesasListPage() {
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-slate-900">Despesas</h1>
-          <p className="text-sm text-slate-500">Saídas de dinheiro pagas por conta ou cartão de crédito.</p>
+          <h1 className="text-xl font-semibold text-slate-900">{title ?? "Despesas"}</h1>
+          <p className="text-sm text-slate-500">
+            {description ?? "Saídas de dinheiro pagas por conta ou cartão de crédito."}
+          </p>
         </div>
         <Button onClick={() => setModalState({ open: true, expense: null })}>+ Nova despesa</Button>
       </div>
@@ -149,7 +165,7 @@ export function DespesasListPage() {
         )}
         {isError && <ErrorBanner message="Não foi possível carregar as despesas." />}
         {!isLoading && data?.content.length === 0 && <EmptyState message="Nenhuma despesa registrada ainda." />}
-        {!isLoading && data && data.content.length > 0 && (
+        {!isLoading && data && sortedContent.length > 0 && (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead className="bg-slate-50 text-xs uppercase text-slate-500">
@@ -164,7 +180,7 @@ export function DespesasListPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {data.content.map((expense) => (
+                {sortedContent.map((expense) => (
                   <tr key={expense.id}>
                     <td className="px-4 py-3 font-medium text-slate-900">{expense.descricao}</td>
                     <td className="px-4 py-3 text-slate-600">{expense.categoriaNome}</td>

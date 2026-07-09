@@ -1,6 +1,7 @@
 package com.cashpilot.service.impl;
 
 import com.cashpilot.dto.request.IncomeRequestDTO;
+import com.cashpilot.dto.request.MarkIncomeReceivedRequestDTO;
 import com.cashpilot.dto.response.IncomeResponseDTO;
 import com.cashpilot.entity.BankAccount;
 import com.cashpilot.entity.Category;
@@ -48,6 +49,8 @@ public class IncomeServiceImpl implements IncomeService {
                 .valor(dto.valor())
                 .data(dto.data())
                 .recorrente(dto.recorrente() != null && dto.recorrente())
+                .recebida(dto.recebida() == null || dto.recebida())
+                .dataRecebimento(dto.dataRecebimento())
                 .observacoes(dto.observacoes())
                 .build();
 
@@ -69,6 +72,10 @@ public class IncomeServiceImpl implements IncomeService {
         if (dto.recorrente() != null) {
             income.setRecorrente(dto.recorrente());
         }
+        if (dto.recebida() != null) {
+            income.setRecebida(dto.recebida());
+        }
+        income.setDataRecebimento(dto.dataRecebimento());
         income.setObservacoes(dto.observacoes());
 
         Income updated = incomeRepository.save(income);
@@ -89,10 +96,20 @@ public class IncomeServiceImpl implements IncomeService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<IncomeResponseDTO> findAll(LocalDate dataInicio, LocalDate dataFim, Long categoriaId, Long contaId, Pageable pageable) {
+    public Page<IncomeResponseDTO> findAll(LocalDate dataInicio, LocalDate dataFim, Long categoriaId, Long contaId, Boolean recebida, Pageable pageable) {
         Long userId = currentUserProvider.getCurrentUserId();
-        return incomeRepository.findAllByFilters(userId, dataInicio, dataFim, categoriaId, contaId, pageable)
+        return incomeRepository.findAllByFilters(userId, dataInicio, dataFim, categoriaId, contaId, recebida, pageable)
                 .map(incomeMapper::toResponseDto);
+    }
+
+    @Override
+    public IncomeResponseDTO markAsReceived(Long id, MarkIncomeReceivedRequestDTO dto) {
+        Income income = findOwnedEntityById(id);
+        income.setRecebida(true);
+        income.setDataRecebimento(dto == null || dto.dataRecebimento() == null ? LocalDate.now() : dto.dataRecebimento());
+
+        Income updated = incomeRepository.save(income);
+        return incomeMapper.toResponseDto(updated);
     }
 
     private Category resolveCategoria(Long categoriaId, Long userId) {

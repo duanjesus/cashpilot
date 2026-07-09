@@ -54,6 +54,13 @@ public class Income extends BaseEntity {
     @Builder.Default
     private Boolean recorrente = false;
 
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean recebida = true;
+
+    @Column(name = "data_recebimento")
+    private LocalDate dataRecebimento;
+
     @Column(length = 500)
     private String observacoes;
 

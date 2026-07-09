@@ -32,13 +32,24 @@ public interface IncomeRepository extends JpaRepository<Income, Long> {
               AND (CAST(:dataFim AS date) IS NULL OR i.data <= :dataFim)
               AND (CAST(:categoriaId AS long) IS NULL OR i.categoria.id = :categoriaId)
               AND (CAST(:contaId AS long) IS NULL OR i.contaBancaria.id = :contaId)
+              AND (CAST(:recebida AS boolean) IS NULL OR i.recebida = :recebida)
             """)
     Page<Income> findAllByFilters(@Param("userId") Long userId,
                                    @Param("dataInicio") LocalDate dataInicio,
                                    @Param("dataFim") LocalDate dataFim,
                                    @Param("categoriaId") Long categoriaId,
                                    @Param("contaId") Long contaId,
+                                   @Param("recebida") Boolean recebida,
                                    Pageable pageable);
+
+    @Query("""
+            SELECT i FROM Income i
+            WHERE i.user.id = :userId AND i.recebida = false AND i.data BETWEEN :dataInicio AND :dataFim
+            ORDER BY i.data ASC
+            """)
+    List<Income> findAllByUserIdAndRecebidaFalseAndDataBetween(@Param("userId") Long userId,
+                                                                 @Param("dataInicio") LocalDate dataInicio,
+                                                                 @Param("dataFim") LocalDate dataFim);
 
     @Query("""
             SELECT i FROM Income i

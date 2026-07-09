@@ -13,6 +13,11 @@ import { DespesasListPage } from "@/pages/despesas/DespesasListPage";
 import { TransferenciasListPage } from "@/pages/transferencias/TransferenciasListPage";
 import { MetasListPage } from "@/pages/metas/MetasListPage";
 import { ProjectionPage } from "@/pages/projecao/ProjectionPage";
+import { ParcelamentosListPage } from "@/pages/parcelamentos/ParcelamentosListPage";
+import { AssinaturasListPage } from "@/pages/assinaturas/AssinaturasListPage";
+import { FluxoCaixaPage } from "@/pages/fluxo-caixa/FluxoCaixaPage";
+import { ContasAPagarPage } from "@/pages/contas-a-pagar/ContasAPagarPage";
+import { ContasAReceberPage } from "@/pages/contas-a-receber/ContasAReceberPage";
 
 export default function App() {
   return (
@@ -29,6 +34,11 @@ export default function App() {
           <Route path="/receitas" element={<ReceitasListPage />} />
           <Route path="/despesas" element={<DespesasListPage />} />
           <Route path="/transferencias" element={<TransferenciasListPage />} />
+          <Route path="/parcelamentos" element={<ParcelamentosListPage />} />
+          <Route path="/assinaturas" element={<AssinaturasListPage />} />
+          <Route path="/fluxo-caixa" element={<FluxoCaixaPage />} />
+          <Route path="/contas-a-pagar" element={<ContasAPagarPage />} />
+          <Route path="/contas-a-receber" element={<ContasAReceberPage />} />
           <Route path="/metas" element={<MetasListPage />} />
           <Route path="/projecao" element={<ProjectionPage />} />
         </Route>

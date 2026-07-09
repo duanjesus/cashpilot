@@ -9,6 +9,8 @@ public record IncomeResponseDTO(
         BigDecimal valor,
         LocalDate data,
         Boolean recorrente,
+        Boolean recebida,
+        LocalDate dataRecebimento,
         String observacoes,
         Long categoriaId,
         String categoriaNome,

@@ -29,6 +29,10 @@ public record IncomeRequestDTO(
 
         Boolean recorrente,
 
+        Boolean recebida,
+
+        LocalDate dataRecebimento,
+
         @Size(max = 500, message = "As observações devem ter no máximo 500 caracteres")
         String observacoes
 

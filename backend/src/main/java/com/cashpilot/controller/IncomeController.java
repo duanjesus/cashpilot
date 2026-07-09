@@ -1,6 +1,7 @@
 package com.cashpilot.controller;
 
 import com.cashpilot.dto.request.IncomeRequestDTO;
+import com.cashpilot.dto.request.MarkIncomeReceivedRequestDTO;
 import com.cashpilot.dto.response.IncomeResponseDTO;
 import com.cashpilot.service.IncomeService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -59,8 +60,16 @@ public class IncomeController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataFim,
             @RequestParam(required = false) Long categoriaId,
             @RequestParam(required = false) Long contaId,
+            @RequestParam(required = false) Boolean recebida,
             @PageableDefault(size = 20, sort = "data") Pageable pageable) {
-        return ResponseEntity.ok(incomeService.findAll(dataInicio, dataFim, categoriaId, contaId, pageable));
+        return ResponseEntity.ok(incomeService.findAll(dataInicio, dataFim, categoriaId, contaId, recebida, pageable));
+    }
+
+    @PatchMapping("/{id}/receber")
+    @Operation(summary = "Marcar receita como recebida")
+    public ResponseEntity<IncomeResponseDTO> markAsReceived(@PathVariable Long id,
+                                                             @RequestBody(required = false) MarkIncomeReceivedRequestDTO dto) {
+        return ResponseEntity.ok(incomeService.markAsReceived(id, dto));
     }
 
 }

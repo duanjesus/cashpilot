@@ -24,6 +24,14 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
 
     boolean existsByCartaoCreditoId(Long cartaoId);
 
+    boolean existsByParcelamentoId(Long parcelamentoId);
+
+    boolean existsByParcelamentoIdAndPagaTrue(Long parcelamentoId);
+
+    List<Expense> findAllByParcelamentoId(Long parcelamentoId);
+
+    boolean existsByAssinaturaIdAndReferenciaMes(Long assinaturaId, LocalDate referenciaMes);
+
     @Query("SELECT COALESCE(SUM(e.valor), 0) FROM Expense e WHERE e.contaBancaria.id = :contaId")
     BigDecimal sumValorByContaBancariaId(@Param("contaId") Long contaId);
 

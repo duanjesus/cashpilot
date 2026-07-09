@@ -98,10 +98,17 @@ public class BankAccountServiceImpl implements BankAccountService {
                 .toList();
     }
 
-    /**
-     * Package-private so {@code DashboardServiceImpl}-style callers elsewhere could reuse
-     * the same aggregate math if desired; kept here since it belongs to this account's own service.
-     */
+    @Override
+    @Transactional(readOnly = true)
+    public BigDecimal getSaldoAtualTotal() {
+        Long userId = currentUserProvider.getCurrentUserId();
+        return bankAccountRepository.findAllByUserId(userId).stream()
+                .filter(BankAccount::getAtiva)
+                .map(this::computeSaldoAtual)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    /** Package-private: reused by {@link #getSaldoAtualTotal()} and available to other services in this package. */
     BigDecimal computeSaldoAtual(BankAccount account) {
         Long contaId = account.getId();
         BigDecimal entradas = incomeRepository.sumValorByContaBancariaId(contaId);
