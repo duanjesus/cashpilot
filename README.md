@@ -31,6 +31,22 @@ This repository is a **monorepo** containing both halves of the system:
 
 ---
 
+## 📸 Screenshots
+
+| Dashboard | Expenses |
+|---|---|
+| ![Dashboard](docs/screenshots/dashboard.png) | ![Expenses](docs/screenshots/despesas.png) |
+
+| Reports | Financial simulation |
+|---|---|
+| ![Reports](docs/screenshots/relatorios.png) | ![Financial simulation](docs/screenshots/simulacao.png) |
+
+| Family group | Open Finance (stub) |
+|---|---|
+| ![Family group](docs/screenshots/grupo-familiar.png) | ![Open Finance](docs/screenshots/open-finance.png) |
+
+---
+
 ## 🚀 Quick start (full stack, with Docker)
 
 ```bash
