@@ -1,6 +1,7 @@
 package com.cashpilot.repository;
 
 import com.cashpilot.entity.Expense;
+import com.cashpilot.repository.projection.MovimentoDiario;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -32,8 +33,24 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
 
     boolean existsByAssinaturaIdAndReferenciaMes(Long assinaturaId, LocalDate referenciaMes);
 
-    @Query("SELECT COALESCE(SUM(e.valor), 0) FROM Expense e WHERE e.contaBancaria.id = :contaId")
-    BigDecimal sumValorByContaBancariaId(@Param("contaId") Long contaId);
+    /** Only paid expenses count, dated by when they were paid (falls back to {@code data}). */
+    @Query("""
+            SELECT COALESCE(SUM(e.valor), 0) FROM Expense e
+            WHERE e.contaBancaria.id = :contaId AND e.paga = true
+              AND COALESCE(e.dataPagamento, e.data) <= :ate
+            """)
+    BigDecimal sumRealizadoByContaBancariaIdAte(@Param("contaId") Long contaId, @Param("ate") LocalDate ate);
+
+    @Query("""
+            SELECT new com.cashpilot.repository.projection.MovimentoDiario(COALESCE(e.dataPagamento, e.data), SUM(e.valor))
+            FROM Expense e
+            WHERE e.contaBancaria.id = :contaId AND e.paga = true
+              AND COALESCE(e.dataPagamento, e.data) BETWEEN :inicio AND :fim
+            GROUP BY COALESCE(e.dataPagamento, e.data)
+            """)
+    List<MovimentoDiario> sumRealizadoPorDia(@Param("contaId") Long contaId,
+                                             @Param("inicio") LocalDate inicio,
+                                             @Param("fim") LocalDate fim);
 
     @Query("SELECT COALESCE(SUM(e.valor), 0) FROM Expense e WHERE e.cartaoCredito.id = :cartaoId AND e.paga = false")
     BigDecimal sumValorByCartaoCreditoIdAndPagaFalse(@Param("cartaoId") Long cartaoId);
@@ -78,14 +95,6 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
                                         @Param("cartaoId") Long cartaoId,
                                         @Param("paga") Boolean paga);
 
-    @Query("""
-            SELECT e FROM Expense e
-            WHERE e.user.id IN :userIds AND e.data BETWEEN :dataInicio AND :dataFim
-            """)
-    List<Expense> findAllByUserIdAndDataBetween(@Param("userIds") List<Long> userIds,
-                                                 @Param("dataInicio") LocalDate dataInicio,
-                                                 @Param("dataFim") LocalDate dataFim);
-
     @Query("SELECT COALESCE(SUM(e.valor), 0) FROM Expense e WHERE e.user.id IN :userIds AND e.data BETWEEN :dataInicio AND :dataFim")
     BigDecimal sumValorByUserIdAndDataBetween(@Param("userIds") List<Long> userIds,
                                                @Param("dataInicio") LocalDate dataInicio,
@@ -107,5 +116,27 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
     List<Expense> findUpcomingUnpaid(@Param("userIds") List<Long> userIds,
                                       @Param("dataInicio") LocalDate dataInicio,
                                       @Param("dataFim") LocalDate dataFim);
+
+    /**
+     * Expenses not yet in any realized balance as of {@code hoje} but expected by {@code dataFim}:
+     * unpaid ones due in the window, overdue unpaid ones charged to a bank account, and
+     * paid-flagged bank-account entries dated in the future. Overdue card expenses stay out —
+     * they sit in the card's open statement, not in a bank balance.
+     */
+    @Query("""
+            SELECT e FROM Expense e
+            WHERE e.user.id IN :userIds
+              AND (
+                    (e.paga = false AND e.data <= :dataFim
+                     AND (e.data >= :hoje OR e.contaBancaria IS NOT NULL))
+                 OR (e.paga = true AND e.contaBancaria IS NOT NULL
+                     AND COALESCE(e.dataPagamento, e.data) > :hoje
+                     AND COALESCE(e.dataPagamento, e.data) <= :dataFim)
+                  )
+            ORDER BY e.data ASC
+            """)
+    List<Expense> findNaoRealizadasAte(@Param("userIds") List<Long> userIds,
+                                       @Param("hoje") LocalDate hoje,
+                                       @Param("dataFim") LocalDate dataFim);
 
 }

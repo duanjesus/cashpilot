@@ -1,18 +1,18 @@
 package com.cashpilot.service.impl;
 
 import com.cashpilot.dto.response.DashboardSummaryResponseDTO;
-import com.cashpilot.dto.response.EvolucaoSaldoPointDTO;
 import com.cashpilot.dto.response.MetaPrincipalResponseDTO;
 import com.cashpilot.dto.response.ProximaContaResponseDTO;
+import com.cashpilot.dto.response.SaldoHistoricoPontoDTO;
 import com.cashpilot.entity.Expense;
 import com.cashpilot.entity.FinancialGoal;
-import com.cashpilot.entity.Income;
 import com.cashpilot.repository.ExpenseRepository;
 import com.cashpilot.repository.FinancialGoalRepository;
 import com.cashpilot.repository.IncomeRepository;
 import com.cashpilot.security.CurrentUserProvider;
 import com.cashpilot.service.BankAccountService;
 import com.cashpilot.service.DashboardService;
+import com.cashpilot.service.SaldoHistoricoService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -23,8 +23,6 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
 
 @Service
 @RequiredArgsConstructor
@@ -34,6 +32,7 @@ public class DashboardServiceImpl implements DashboardService {
     private static final BigDecimal HUNDRED = BigDecimal.valueOf(100);
 
     private final BankAccountService bankAccountService;
+    private final SaldoHistoricoService saldoHistoricoService;
     private final IncomeRepository incomeRepository;
     private final ExpenseRepository expenseRepository;
     private final FinancialGoalRepository financialGoalRepository;
@@ -76,34 +75,8 @@ public class DashboardServiceImpl implements DashboardService {
     }
 
     @Override
-    public List<EvolucaoSaldoPointDTO> getEvolucaoSaldo(Integer dias) {
-        List<Long> scopeUserIds = currentUserProvider.getScopeUserIds();
-        int janela = dias != null ? dias : evolucaoSaldoDiasPadrao;
-
-        LocalDate hoje = LocalDate.now();
-        LocalDate inicio = hoje.minusDays(janela - 1L);
-
-        Map<LocalDate, BigDecimal> deltasPorDia = new TreeMap<>();
-        for (LocalDate d = inicio; !d.isAfter(hoje); d = d.plusDays(1)) {
-            deltasPorDia.put(d, BigDecimal.ZERO);
-        }
-
-        for (Income income : incomeRepository.findAllByUserIdAndDataBetween(scopeUserIds, inicio, hoje)) {
-            deltasPorDia.merge(income.getData(), income.getValor(), BigDecimal::add);
-        }
-        for (Expense expense : expenseRepository.findAllByUserIdAndDataBetween(scopeUserIds, inicio, hoje)) {
-            if (expense.getContaBancaria() != null) {
-                deltasPorDia.merge(expense.getData(), expense.getValor().negate(), BigDecimal::add);
-            }
-        }
-
-        List<EvolucaoSaldoPointDTO> pontos = new java.util.ArrayList<>();
-        BigDecimal acumulado = BigDecimal.ZERO;
-        for (Map.Entry<LocalDate, BigDecimal> entry : deltasPorDia.entrySet()) {
-            acumulado = acumulado.add(entry.getValue());
-            pontos.add(new EvolucaoSaldoPointDTO(entry.getKey(), acumulado));
-        }
-        return pontos;
+    public List<SaldoHistoricoPontoDTO> getEvolucaoSaldo(Integer dias) {
+        return saldoHistoricoService.getHistoricoTotal(dias != null ? dias : evolucaoSaldoDiasPadrao);
     }
 
     private MetaPrincipalResponseDTO toMetaPrincipal(FinancialGoal goal) {

@@ -24,8 +24,3 @@ export interface DashboardSummary {
   metaPrincipal: MainGoalSummary | null;
   proximasContas: UpcomingBill[];
 }
-
-export interface BalanceEvolutionPoint {
-  data: string;
-  valorAcumulado: number;
-}

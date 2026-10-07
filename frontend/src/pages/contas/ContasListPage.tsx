@@ -12,6 +12,7 @@ import { Spinner } from "@/components/ui/Spinner";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { ContaFormModal } from "@/pages/contas/ContaFormModal";
+import { ContaHistoricoModal } from "@/pages/contas/ContaHistoricoModal";
 
 export function ContasListPage() {
   const { data, isLoading, isError } = useBankAccounts();
@@ -23,6 +24,7 @@ export function ContasListPage() {
     open: false,
     account: null,
   });
+  const [historyAccount, setHistoryAccount] = useState<BankAccount | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
   async function handleDelete(account: BankAccount) {
@@ -86,6 +88,9 @@ export function ContasListPage() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex justify-end gap-2">
+                        <Button variant="secondary" onClick={() => setHistoryAccount(account)}>
+                          Histórico
+                        </Button>
                         <Button variant="secondary" onClick={() => setModalState({ open: true, account })}>
                           Editar
                         </Button>
@@ -109,6 +114,7 @@ export function ContasListPage() {
       {modalState.open && (
         <ContaFormModal account={modalState.account} onClose={() => setModalState({ open: false, account: null })} />
       )}
+      {historyAccount && <ContaHistoricoModal account={historyAccount} onClose={() => setHistoryAccount(null)} />}
     </div>
   );
 }

@@ -117,6 +117,7 @@ Each package is independently runnable and documented — see their READMEs for 
 - [x] **V2** — Installment purchases, recurring subscriptions, bills payable/receivable, cash flow forecast
 - [x] **V3** — Advanced charts, financial simulation, Excel/PDF export, investment goals
 - [x] **V4** — Notifications, Open Finance structure, multiple users, family sharing
+- [x] **V5** — Realized-balance definition, daily balance snapshots, real balance history per account and on the dashboard
 
 ---
 

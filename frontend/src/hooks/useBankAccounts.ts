@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { api } from "@/lib/api";
 import type { BankAccount, BankAccountRequest } from "@/types/bankAccount";
+import type { SaldoHistoricoPonto } from "@/types/saldoHistorico";
 
 export const BANK_ACCOUNTS_KEY = "bankAccounts";
 
@@ -23,6 +24,18 @@ export function useBankAccount(id: number | null) {
       return data;
     },
     enabled: id !== null,
+  });
+}
+
+export function useBankAccountBalanceHistory(id: number, dias: number) {
+  return useQuery({
+    queryKey: [BANK_ACCOUNTS_KEY, id, "historico-saldo", dias],
+    queryFn: async () => {
+      const { data } = await api.get<SaldoHistoricoPonto[]>(`/contas/${id}/historico-saldo`, {
+        params: { dias },
+      });
+      return data;
+    },
   });
 }
 

@@ -18,7 +18,7 @@ public interface BankAccountService {
 
     List<BankAccountResponseDTO> findAll();
 
-    /** Sum of {@code saldoAtual} across the current user's active accounts. */
+    /** Sum of today's realized balance across the current user's active accounts. */
     BigDecimal getSaldoAtualTotal();
 
 }

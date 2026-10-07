@@ -1,6 +1,7 @@
 package com.cashpilot.repository;
 
 import com.cashpilot.entity.Income;
+import com.cashpilot.repository.projection.MovimentoDiario;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -22,8 +23,24 @@ public interface IncomeRepository extends JpaRepository<Income, Long> {
 
     boolean existsByContaBancariaId(Long contaId);
 
-    @Query("SELECT COALESCE(SUM(i.valor), 0) FROM Income i WHERE i.contaBancaria.id = :contaId")
-    BigDecimal sumValorByContaBancariaId(@Param("contaId") Long contaId);
+    /** Only received income counts, dated by when it was received (falls back to {@code data}). */
+    @Query("""
+            SELECT COALESCE(SUM(i.valor), 0) FROM Income i
+            WHERE i.contaBancaria.id = :contaId AND i.recebida = true
+              AND COALESCE(i.dataRecebimento, i.data) <= :ate
+            """)
+    BigDecimal sumRealizadoByContaBancariaIdAte(@Param("contaId") Long contaId, @Param("ate") LocalDate ate);
+
+    @Query("""
+            SELECT new com.cashpilot.repository.projection.MovimentoDiario(COALESCE(i.dataRecebimento, i.data), SUM(i.valor))
+            FROM Income i
+            WHERE i.contaBancaria.id = :contaId AND i.recebida = true
+              AND COALESCE(i.dataRecebimento, i.data) BETWEEN :inicio AND :fim
+            GROUP BY COALESCE(i.dataRecebimento, i.data)
+            """)
+    List<MovimentoDiario> sumRealizadoPorDia(@Param("contaId") Long contaId,
+                                             @Param("inicio") LocalDate inicio,
+                                             @Param("fim") LocalDate fim);
 
     @Query("""
             SELECT i FROM Income i
@@ -60,22 +77,24 @@ public interface IncomeRepository extends JpaRepository<Income, Long> {
                                        @Param("contaId") Long contaId,
                                        @Param("recebida") Boolean recebida);
 
+    /**
+     * Income not yet in any realized balance as of {@code hoje} but expected by {@code dataFim}:
+     * unreceived (including overdue), plus received-flagged entries dated in the future.
+     */
     @Query("""
             SELECT i FROM Income i
-            WHERE i.user.id IN :userIds AND i.recebida = false AND i.data BETWEEN :dataInicio AND :dataFim
+            WHERE i.user.id IN :userIds
+              AND (
+                    (i.recebida = false AND i.data <= :dataFim)
+                 OR (i.recebida = true
+                     AND COALESCE(i.dataRecebimento, i.data) > :hoje
+                     AND COALESCE(i.dataRecebimento, i.data) <= :dataFim)
+                  )
             ORDER BY i.data ASC
             """)
-    List<Income> findAllByUserIdAndRecebidaFalseAndDataBetween(@Param("userIds") List<Long> userIds,
-                                                                 @Param("dataInicio") LocalDate dataInicio,
-                                                                 @Param("dataFim") LocalDate dataFim);
-
-    @Query("""
-            SELECT i FROM Income i
-            WHERE i.user.id IN :userIds AND i.data BETWEEN :dataInicio AND :dataFim
-            """)
-    List<Income> findAllByUserIdAndDataBetween(@Param("userIds") List<Long> userIds,
-                                                @Param("dataInicio") LocalDate dataInicio,
-                                                @Param("dataFim") LocalDate dataFim);
+    List<Income> findNaoRealizadasAte(@Param("userIds") List<Long> userIds,
+                                      @Param("hoje") LocalDate hoje,
+                                      @Param("dataFim") LocalDate dataFim);
 
     @Query("SELECT COALESCE(SUM(i.valor), 0) FROM Income i WHERE i.user.id IN :userIds AND i.data BETWEEN :dataInicio AND :dataFim")
     BigDecimal sumValorByUserIdAndDataBetween(@Param("userIds") List<Long> userIds,

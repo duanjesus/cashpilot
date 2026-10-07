@@ -12,18 +12,22 @@ import { ErrorBanner } from "@/components/ui/ErrorBanner";
 
 const TIPO_LABELS: Record<TipoLancamentoFluxoCaixa, string> = {
   DESPESA_PENDENTE: "Despesa pendente",
+  DESPESA_ATRASADA: "Despesa atrasada",
   RECEITA_PENDENTE: "Receita pendente",
+  RECEITA_ATRASADA: "Receita atrasada",
   ASSINATURA_PROJETADA: "Assinatura projetada",
 };
 
 const TIPO_TONES: Record<TipoLancamentoFluxoCaixa, "green" | "red" | "amber"> = {
   DESPESA_PENDENTE: "red",
+  DESPESA_ATRASADA: "red",
   RECEITA_PENDENTE: "green",
+  RECEITA_ATRASADA: "green",
   ASSINATURA_PROJETADA: "amber",
 };
 
 function isEntrada(tipo: TipoLancamentoFluxoCaixa) {
-  return tipo === "RECEITA_PENDENTE";
+  return tipo === "RECEITA_PENDENTE" || tipo === "RECEITA_ATRASADA";
 }
 
 export function FluxoCaixaPage() {
@@ -36,7 +40,8 @@ export function FluxoCaixaPage() {
         <div>
           <h1 className="text-xl font-semibold text-slate-900">Fluxo de caixa</h1>
           <p className="text-sm text-slate-500">
-            Projeção do saldo futuro considerando despesas, receitas e assinaturas pendentes.
+            Projeção a partir do saldo já realizado, somando despesas, receitas e assinaturas ainda pendentes.
+            Lançamentos atrasados entram na data de hoje.
           </p>
         </div>
         <Select
@@ -122,7 +127,7 @@ export function FluxoCaixaPage() {
                           }`}
                         >
                           {isEntrada(item.tipo) ? "+" : "-"}
-                          {formatCurrency(item.valor)}
+                          {formatCurrency(Math.abs(item.valor))}
                         </td>
                       </tr>
                     ))}

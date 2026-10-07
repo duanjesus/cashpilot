@@ -54,6 +54,9 @@ class BankAccountServiceImplTest {
     private BankAccountMapper bankAccountMapper;
 
     @Mock
+    private SaldoCalculator saldoCalculator;
+
+    @Mock
     private CurrentUserProvider currentUserProvider;
 
     @InjectMocks
@@ -90,10 +93,7 @@ class BankAccountServiceImplTest {
                 new BankAccountResponseDTO(10L, requestDTO.nome(), requestDTO.instituicao(), requestDTO.tipo(),
                         requestDTO.saldoInicial(), requestDTO.dataSaldoInicial(), true, null,
                         ContaOrigem.MANUAL, null, null));
-        when(incomeRepository.sumValorByContaBancariaId(10L)).thenReturn(BigDecimal.ZERO);
-        when(expenseRepository.sumValorByContaBancariaId(10L)).thenReturn(BigDecimal.ZERO);
-        when(transferRepository.sumValorByContaOrigemId(10L)).thenReturn(BigDecimal.ZERO);
-        when(transferRepository.sumValorByContaDestinoId(10L)).thenReturn(BigDecimal.ZERO);
+        when(saldoCalculator.saldoEm(eq(account), any(LocalDate.class))).thenReturn(requestDTO.saldoInicial());
 
         BankAccountResponseDTO response = bankAccountService.create(requestDTO);
 

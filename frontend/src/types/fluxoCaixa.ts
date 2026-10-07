@@ -1,4 +1,9 @@
-export type TipoLancamentoFluxoCaixa = "DESPESA_PENDENTE" | "RECEITA_PENDENTE" | "ASSINATURA_PROJETADA";
+export type TipoLancamentoFluxoCaixa =
+  | "DESPESA_PENDENTE"
+  | "DESPESA_ATRASADA"
+  | "RECEITA_PENDENTE"
+  | "RECEITA_ATRASADA"
+  | "ASSINATURA_PROJETADA";
 
 export interface FluxoCaixaSeriePoint {
   data: string;

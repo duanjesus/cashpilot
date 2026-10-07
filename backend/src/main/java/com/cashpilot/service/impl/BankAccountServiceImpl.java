@@ -14,11 +14,13 @@ import com.cashpilot.repository.IncomeRepository;
 import com.cashpilot.repository.TransferRepository;
 import com.cashpilot.security.CurrentUserProvider;
 import com.cashpilot.service.BankAccountService;
+import com.cashpilot.service.SaldoCalculator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 
 @Service
@@ -31,6 +33,7 @@ public class BankAccountServiceImpl implements BankAccountService {
     private final ExpenseRepository expenseRepository;
     private final TransferRepository transferRepository;
     private final BankAccountMapper bankAccountMapper;
+    private final SaldoCalculator saldoCalculator;
     private final CurrentUserProvider currentUserProvider;
 
     @Override
@@ -118,19 +121,8 @@ public class BankAccountServiceImpl implements BankAccountService {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
-    /** Package-private: reused by {@link #getSaldoAtualTotal()} and available to other services in this package. */
-    BigDecimal computeSaldoAtual(BankAccount account) {
-        Long contaId = account.getId();
-        BigDecimal entradas = incomeRepository.sumValorByContaBancariaId(contaId);
-        BigDecimal saidas = expenseRepository.sumValorByContaBancariaId(contaId);
-        BigDecimal transferenciasSaida = transferRepository.sumValorByContaOrigemId(contaId);
-        BigDecimal transferenciasEntrada = transferRepository.sumValorByContaDestinoId(contaId);
-
-        return account.getSaldoInicial()
-                .add(entradas)
-                .subtract(saidas)
-                .subtract(transferenciasSaida)
-                .add(transferenciasEntrada);
+    private BigDecimal computeSaldoAtual(BankAccount account) {
+        return saldoCalculator.saldoEm(account, LocalDate.now());
     }
 
     private BankAccountResponseDTO toResponseWithSaldo(BankAccount account) {

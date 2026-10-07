@@ -1,7 +1,7 @@
 package com.cashpilot.controller;
 
 import com.cashpilot.dto.response.DashboardSummaryResponseDTO;
-import com.cashpilot.dto.response.EvolucaoSaldoPointDTO;
+import com.cashpilot.dto.response.SaldoHistoricoPontoDTO;
 import com.cashpilot.service.DashboardService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -29,8 +29,8 @@ public class DashboardController {
     }
 
     @GetMapping("/evolucao-saldo")
-    @Operation(summary = "Série de fluxo de caixa acumulado (aproximação) dos últimos N dias")
-    public ResponseEntity<List<EvolucaoSaldoPointDTO>> getEvolucaoSaldo(@RequestParam(required = false) Integer dias) {
+    @Operation(summary = "Saldo realizado dia a dia, somado das contas ativas, nos últimos N dias")
+    public ResponseEntity<List<SaldoHistoricoPontoDTO>> getEvolucaoSaldo(@RequestParam(required = false) Integer dias) {
         return ResponseEntity.ok(dashboardService.getEvolucaoSaldo(dias));
     }
 

@@ -1,12 +1,10 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   Bar,
   BarChart,
   CartesianGrid,
   Cell,
   Legend,
-  Line,
-  LineChart,
   Pie,
   PieChart,
   ResponsiveContainer,
@@ -22,6 +20,8 @@ import { currentMonthRange, formatCurrency, formatDate, formatPercent } from "@/
 import { Spinner } from "@/components/ui/Spinner";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { Select } from "@/components/ui/Select";
+import { SaldoHistoricoChart } from "@/components/SaldoHistoricoChart";
 
 const FALLBACK_COLORS = ["#3b82f6", "#f97316", "#22c55e", "#ef4444", "#a855f7", "#eab308", "#06b6d4", "#ec4899"];
 
@@ -37,7 +37,8 @@ function StatTile({ label, value, tone }: { label: string; value: string; tone?:
 
 export function DashboardPage() {
   const { data: summary, isLoading: isSummaryLoading, isError: isSummaryError } = useDashboardSummary();
-  const { data: evolution, isLoading: isEvolutionLoading } = useBalanceEvolution(30);
+  const [evolutionDays, setEvolutionDays] = useState(30);
+  const { data: evolution, isLoading: isEvolutionLoading } = useBalanceEvolution(evolutionDays);
   const { dataInicio, dataFim } = currentMonthRange();
   const { data: expensesPage, isLoading: isExpensesLoading } = useExpenses({ dataInicio, dataFim, size: 200 });
   const { data: categories } = useCategories();
@@ -151,30 +152,31 @@ export function DashboardPage() {
       </div>
 
       <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-        <h2 className="mb-1 font-semibold text-slate-900">Tendência de fluxo de caixa (aproximada)</h2>
-        <p className="mb-3 text-xs text-slate-500">
-          Esta linha é uma aproximação do fluxo de caixa acumulado nos últimos 30 dias, calculada a partir de
-          receitas e despesas — não é um histórico auditado de saldo.
-        </p>
+        <div className="mb-3 flex items-start justify-between gap-4">
+          <div>
+            <h2 className="mb-1 font-semibold text-slate-900">Evolução do saldo</h2>
+            <p className="text-xs text-slate-500">
+              Saldo realizado das contas ativas ao fim de cada dia: só entra o que já foi pago ou recebido.
+            </p>
+          </div>
+          <Select
+            aria-label="Período"
+            value={String(evolutionDays)}
+            onChange={(e) => setEvolutionDays(Number(e.target.value))}
+          >
+            <option value="30">30 dias</option>
+            <option value="90">90 dias</option>
+            <option value="365">12 meses</option>
+          </Select>
+        </div>
         {isEvolutionLoading ? (
           <div className="flex justify-center p-10">
             <Spinner />
           </div>
         ) : !evolution || evolution.length === 0 ? (
-          <EmptyState message="Sem dados suficientes para exibir a tendência." />
+          <EmptyState message="Cadastre uma conta bancária para acompanhar a evolução do saldo." />
         ) : (
-          <ResponsiveContainer width="100%" height={240}>
-            <LineChart data={evolution}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="data" tickFormatter={(v: string) => formatDate(v)} />
-              <YAxis tickFormatter={(v: number) => formatCurrency(v)} width={90} />
-              <Tooltip
-                labelFormatter={(v) => formatDate(String(v))}
-                formatter={(value: number) => formatCurrency(value)}
-              />
-              <Line type="monotone" dataKey="valorAcumulado" name="Fluxo acumulado" stroke="#2563eb" dot={false} />
-            </LineChart>
-          </ResponsiveContainer>
+          <SaldoHistoricoChart data={evolution} />
         )}
       </div>
 

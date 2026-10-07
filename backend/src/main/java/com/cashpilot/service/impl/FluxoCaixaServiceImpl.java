@@ -62,20 +62,24 @@ public class FluxoCaixaServiceImpl implements FluxoCaixaService {
 
     private List<FluxoCaixaItemDTO> coletarDespesasPendentes(List<Long> scopeUserIds, LocalDate hoje, LocalDate dataFim) {
         List<FluxoCaixaItemDTO> itens = new ArrayList<>();
-        for (Expense despesa : expenseRepository.findUpcomingUnpaid(scopeUserIds, hoje, dataFim)) {
+        for (Expense despesa : expenseRepository.findNaoRealizadasAte(scopeUserIds, hoje, dataFim)) {
+            boolean paga = Boolean.TRUE.equals(despesa.getPaga());
+            LocalDate data = paga && despesa.getDataPagamento() != null ? despesa.getDataPagamento() : despesa.getData();
+            String tipo = !paga && data.isBefore(hoje) ? "DESPESA_ATRASADA" : "DESPESA_PENDENTE";
             String origemNome = despesa.getCategoria() != null ? despesa.getCategoria().getNome() : null;
-            itens.add(new FluxoCaixaItemDTO(despesa.getData(), despesa.getDescricao(), despesa.getValor().negate(),
-                    "DESPESA_PENDENTE", origemNome));
+            itens.add(new FluxoCaixaItemDTO(data, despesa.getDescricao(), despesa.getValor().negate(), tipo, origemNome));
         }
         return itens;
     }
 
     private List<FluxoCaixaItemDTO> coletarReceitasPendentes(List<Long> scopeUserIds, LocalDate hoje, LocalDate dataFim) {
         List<FluxoCaixaItemDTO> itens = new ArrayList<>();
-        for (Income receita : incomeRepository.findAllByUserIdAndRecebidaFalseAndDataBetween(scopeUserIds, hoje, dataFim)) {
+        for (Income receita : incomeRepository.findNaoRealizadasAte(scopeUserIds, hoje, dataFim)) {
+            boolean recebida = Boolean.TRUE.equals(receita.getRecebida());
+            LocalDate data = recebida && receita.getDataRecebimento() != null ? receita.getDataRecebimento() : receita.getData();
+            String tipo = !recebida && data.isBefore(hoje) ? "RECEITA_ATRASADA" : "RECEITA_PENDENTE";
             String origemNome = receita.getCategoria() != null ? receita.getCategoria().getNome() : null;
-            itens.add(new FluxoCaixaItemDTO(receita.getData(), receita.getDescricao(), receita.getValor(),
-                    "RECEITA_PENDENTE", origemNome));
+            itens.add(new FluxoCaixaItemDTO(data, receita.getDescricao(), receita.getValor(), tipo, origemNome));
         }
         return itens;
     }
@@ -109,7 +113,9 @@ public class FluxoCaixaServiceImpl implements FluxoCaixaService {
             deltasPorDia.put(d, BigDecimal.ZERO);
         }
         for (FluxoCaixaItemDTO item : detalhamento) {
-            deltasPorDia.merge(item.data(), item.valor(), BigDecimal::add);
+            // Overdue items keep their original date in the breakdown but hit the projection today.
+            LocalDate dia = item.data().isBefore(hoje) ? hoje : item.data();
+            deltasPorDia.merge(dia, item.valor(), BigDecimal::add);
         }
 
         List<FluxoCaixaPontoDTO> serie = new ArrayList<>();

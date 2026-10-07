@@ -71,7 +71,7 @@ CashPilot has **no admin/operator split** — every authenticated user only ever
 
 - **Income vs. expenses**: compares the current month's totals from `/dashboard/resumo` as a two-bar chart. A true 6-month trailing history would need a dedicated backend endpoint that doesn't exist yet in this contract, so this is a deliberate simplification for V1.
 - **Expenses by category**: fetched client-side via `/despesas` filtered to the current month's date range, then aggregated by `categoriaNome`; slice colors use each category's `cor` field where available, falling back to a fixed palette.
-- **Cash-flow trend**: sourced from `/dashboard/evolucao-saldo`. This is explicitly labeled in the UI as an *approximate* net cash-flow trend, not an audited balance history, since V1 stores no historical balance snapshots.
+- **Balance history**: sourced from `/dashboard/evolucao-saldo` and rendered by the shared `SaldoHistoricoChart` (also used by the per-account history modal on the accounts page, fed by `/contas/{id}/historico-saldo`). The line is the realized balance recomputed from current transactions; days whose stored snapshot no longer matches it get an amber marker and the tooltip shows the balance recorded at the time.
 
 ## Notes on the V3 analytics pages
 

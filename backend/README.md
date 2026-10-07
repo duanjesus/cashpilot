@@ -140,19 +140,27 @@ Tests are pure unit tests (JUnit 5 + Mockito + AssertJ against mocked repositori
 
 ## 💰 How balances are computed
 
-`BankAccount.saldoAtual` and `CreditCard.faturaAtual` are **never persisted** — they're calculated on every read from `saldoInicial` plus the relevant transactions:
+`BankAccount.saldoAtual` and `CreditCard.faturaAtual` are **never persisted** — they're calculated on every read. The bank balance is a **realized** balance: only money that has actually moved, up to the day being asked about (`D` = today for `saldoAtual`):
 
 ```
-saldoAtual = saldoInicial
-           + SUM(Income.valor WHERE contaBancaria = this account)
-           - SUM(Expense.valor WHERE contaBancaria = this account)
-           - SUM(Transfer.valor WHERE contaOrigem = this account)
-           + SUM(Transfer.valor WHERE contaDestino = this account)
+saldo(D)    = saldoInicial
+            + SUM(Income.valor   WHERE contaBancaria = this account AND recebida AND COALESCE(dataRecebimento, data) <= D)
+            - SUM(Expense.valor  WHERE contaBancaria = this account AND paga     AND COALESCE(dataPagamento, data)   <= D)
+            - SUM(Transfer.valor WHERE contaOrigem  = this account AND data <= D)
+            + SUM(Transfer.valor WHERE contaDestino = this account AND data <= D)
 
 faturaAtual = SUM(Expense.valor WHERE cartaoCredito = this card AND paga = false)
 ```
 
-Credit-card expenses never reduce a bank account's balance in V1 — only paying off the card (or manually marking the expense `paga`) does. Deleting a `BankAccount`/`CreditCard` is blocked (`BusinessException`, HTTP 422) while it's still referenced by any Income/Expense/Transfer, the same "no raw FK violation" rule used by `Category`.
+Unpaid/unreceived entries and anything dated after `D` are left out; the Cash Flow endpoint is where they show up. `SaldoCalculator` is the single implementation of this formula — `saldoAtual`, the balance history and the snapshots all go through it.
+
+### Balance history and daily snapshots
+
+Because every entry is dated, the balance of any past day can be recomputed. On top of that, `SaldoSnapshotJob` (daily cron at 04:00) stores each account's closing balance of the previous day in `saldos_diarios`, back-filling any days missed while the app was down (up to 730 days). A row is `CAPTURADO` when written right after its day closed and `RECONSTRUIDO` when back-filled later. Snapshots are a historical record, **not** the source of the current balance, and are never rewritten.
+
+The history endpoints return, per day, the recomputed `saldo` plus the stored `saldoRegistrado`/`origem`. When the two differ the point is flagged `divergente` — a transaction for that day was added or edited after the day closed. Today's point never has a snapshot.
+
+Credit-card expenses never reduce a bank account's balance — a card expense has no bank account, so marking it `paga` only clears it from the card's `faturaAtual`. Deleting a `BankAccount`/`CreditCard` is blocked (`BusinessException`, HTTP 422) while it's still referenced by any Income/Expense/Transfer, the same "no raw FK violation" rule used by `Category`.
 
 ---
 
@@ -186,6 +194,8 @@ Every endpoint below (except `/api/v1/auth/**` and Swagger) requires a valid JWT
 | DELETE | `/api/v1/contas/{id}`      | Delete a bank account (blocked while in use)     |
 | GET    | `/api/v1/contas/{id}`      | Get a bank account by id (with `saldoAtual`)     |
 | GET    | `/api/v1/contas`           | List the user's bank accounts                     |
+| GET    | `/api/v1/contas/{id}/historico-saldo` | Daily realized balance of one account for the last N days (`?dias=`, default 30, max 730) |
+| POST   | `/api/v1/contas/historico-saldo/capturar` | Manually write the missing daily snapshots for the user's accounts (same logic as the daily cron) |
 
 ### Credit Cards — `/api/v1/cartoes`
 
@@ -247,7 +257,7 @@ Recurring subscriptions generate monthly expenses automatically (daily cron at 0
 
 | Method | Route                       | Description                                                                                                    |
 |--------|-------------------------------|----------------------------------------------------------------------------------------------------------------------|
-| GET    | `/api/v1/fluxo-caixa`          | Forward-looking balance projection (`?dias=`, default 30) combining pending expenses/income and not-yet-generated subscription charges |
+| GET    | `/api/v1/fluxo-caixa`          | Forward-looking balance projection (`?dias=`, default 30): starts from today's realized balance and adds unpaid/unreceived entries, entries dated in the future and not-yet-generated subscription charges. Overdue items keep their original date in the breakdown (`DESPESA_ATRASADA`/`RECEITA_ATRASADA`) and hit the projection today |
 
 ### Transfers — `/api/v1/transferencias`
 
@@ -276,7 +286,7 @@ Append-only: you can only create, list and delete — there's no edit.
 | Method | Route                              | Description                                                                    |
 |--------|--------------------------------------|-------------------------------------------------------------------------------------|
 | GET    | `/api/v1/dashboard/resumo`           | Total current balance, month's income/expenses/investments, main goal, upcoming bills |
-| GET    | `/api/v1/dashboard/evolucao-saldo`   | Cumulative cash-flow series (approximation) for the last N days (`?dias=`)            |
+| GET    | `/api/v1/dashboard/evolucao-saldo`   | Daily realized balance summed across the user's active accounts for the last N days (`?dias=`, default 30, max 730) |
 
 ### Projection — `/api/v1/projecao`
 

@@ -68,8 +68,8 @@ class FluxoCaixaServiceImplTest {
     void deveRetornarSaldoInicialIgualAoSaldoAtualTotal() {
         when(currentUserProvider.getScopeUserIds()).thenReturn(List.of(1L));
         when(bankAccountService.getSaldoAtualTotal()).thenReturn(BigDecimal.valueOf(1000));
-        when(expenseRepository.findUpcomingUnpaid(anyList(), any(), any())).thenReturn(List.of());
-        when(incomeRepository.findAllByUserIdAndRecebidaFalseAndDataBetween(anyList(), any(), any())).thenReturn(List.of());
+        when(expenseRepository.findNaoRealizadasAte(anyList(), any(), any())).thenReturn(List.of());
+        when(incomeRepository.findNaoRealizadasAte(anyList(), any(), any())).thenReturn(List.of());
         when(subscriptionRepository.findAllByUserIdInAndAtivaTrue(List.of(1L))).thenReturn(List.of());
 
         FluxoCaixaResponseDTO result = fluxoCaixaService.getFluxoCaixa(30);
@@ -86,8 +86,8 @@ class FluxoCaixaServiceImplTest {
         Category categoria = Category.builder().id(5L).nome("Moradia").build();
         Expense despesa = Expense.builder().id(1L).user(user).categoria(categoria).descricao("Aluguel")
                 .valor(BigDecimal.valueOf(500)).data(hoje.plusDays(3)).paga(false).build();
-        when(expenseRepository.findUpcomingUnpaid(anyList(), any(), any())).thenReturn(List.of(despesa));
-        when(incomeRepository.findAllByUserIdAndRecebidaFalseAndDataBetween(anyList(), any(), any())).thenReturn(List.of());
+        when(expenseRepository.findNaoRealizadasAte(anyList(), any(), any())).thenReturn(List.of(despesa));
+        when(incomeRepository.findNaoRealizadasAte(anyList(), any(), any())).thenReturn(List.of());
         when(subscriptionRepository.findAllByUserIdInAndAtivaTrue(List.of(1L))).thenReturn(List.of());
 
         FluxoCaixaResponseDTO result = fluxoCaixaService.getFluxoCaixa(30);
@@ -105,11 +105,11 @@ class FluxoCaixaServiceImplTest {
     void deveNetarPositivoParaReceitaPendente() {
         when(currentUserProvider.getScopeUserIds()).thenReturn(List.of(1L));
         when(bankAccountService.getSaldoAtualTotal()).thenReturn(BigDecimal.ZERO);
-        when(expenseRepository.findUpcomingUnpaid(anyList(), any(), any())).thenReturn(List.of());
+        when(expenseRepository.findNaoRealizadasAte(anyList(), any(), any())).thenReturn(List.of());
         Category categoria = Category.builder().id(6L).nome("Salário").build();
         Income receita = Income.builder().id(2L).user(user).categoria(categoria).descricao("Salário")
                 .valor(BigDecimal.valueOf(3000)).data(hoje.plusDays(5)).recebida(false).build();
-        when(incomeRepository.findAllByUserIdAndRecebidaFalseAndDataBetween(anyList(), any(), any())).thenReturn(List.of(receita));
+        when(incomeRepository.findNaoRealizadasAte(anyList(), any(), any())).thenReturn(List.of(receita));
         when(subscriptionRepository.findAllByUserIdInAndAtivaTrue(List.of(1L))).thenReturn(List.of());
 
         FluxoCaixaResponseDTO result = fluxoCaixaService.getFluxoCaixa(30);
@@ -121,12 +121,57 @@ class FluxoCaixaServiceImplTest {
     }
 
     @Test
+    @DisplayName("Despesa atrasada mantém a data original no detalhamento e pesa no saldo projetado de hoje")
+    void deveLancarDespesaAtrasadaNoDiaDeHoje() {
+        when(currentUserProvider.getScopeUserIds()).thenReturn(List.of(1L));
+        when(bankAccountService.getSaldoAtualTotal()).thenReturn(BigDecimal.valueOf(1000));
+        Expense atrasada = Expense.builder().id(3L).user(user).descricao("Condomínio")
+                .valor(BigDecimal.valueOf(400)).data(hoje.minusDays(10)).paga(false).build();
+        when(expenseRepository.findNaoRealizadasAte(anyList(), any(), any())).thenReturn(List.of(atrasada));
+        when(incomeRepository.findNaoRealizadasAte(anyList(), any(), any())).thenReturn(List.of());
+        when(subscriptionRepository.findAllByUserIdInAndAtivaTrue(List.of(1L))).thenReturn(List.of());
+
+        FluxoCaixaResponseDTO result = fluxoCaixaService.getFluxoCaixa(30);
+
+        assertThat(result.serie().get(0).data()).isEqualTo(hoje);
+        assertThat(result.serie().get(0).saldoProjetado()).isEqualByComparingTo("600");
+        assertThat(result.detalhamento()).singleElement().satisfies(item -> {
+            assertThat(item.tipo()).isEqualTo("DESPESA_ATRASADA");
+            assertThat(item.data()).isEqualTo(hoje.minusDays(10));
+        });
+    }
+
+    @Test
+    @DisplayName("Despesa já marcada como paga com pagamento futuro entra na data do pagamento")
+    void deveLancarDespesaPagaComDataFuturaNaDataDoPagamento() {
+        when(currentUserProvider.getScopeUserIds()).thenReturn(List.of(1L));
+        when(bankAccountService.getSaldoAtualTotal()).thenReturn(BigDecimal.valueOf(1000));
+        Expense agendada = Expense.builder().id(4L).user(user).descricao("Seguro")
+                .valor(BigDecimal.valueOf(250)).data(hoje.plusDays(2)).paga(true)
+                .dataPagamento(hoje.plusDays(4)).build();
+        when(expenseRepository.findNaoRealizadasAte(anyList(), any(), any())).thenReturn(List.of(agendada));
+        when(incomeRepository.findNaoRealizadasAte(anyList(), any(), any())).thenReturn(List.of());
+        when(subscriptionRepository.findAllByUserIdInAndAtivaTrue(List.of(1L))).thenReturn(List.of());
+
+        FluxoCaixaResponseDTO result = fluxoCaixaService.getFluxoCaixa(30);
+
+        FluxoCaixaPontoDTO antes = result.serie().stream()
+                .filter(p -> p.data().equals(hoje.plusDays(3))).findFirst().orElseThrow();
+        FluxoCaixaPontoDTO depois = result.serie().stream()
+                .filter(p -> p.data().equals(hoje.plusDays(4))).findFirst().orElseThrow();
+        assertThat(antes.saldoProjetado()).isEqualByComparingTo("1000");
+        assertThat(depois.saldoProjetado()).isEqualByComparingTo("750");
+        assertThat(result.detalhamento()).singleElement()
+                .satisfies(item -> assertThat(item.tipo()).isEqualTo("DESPESA_PENDENTE"));
+    }
+
+    @Test
     @DisplayName("Cobrança de assinatura ainda não materializada aparece uma vez no detalhamento")
     void deveIncluirAssinaturaProjetadaQuandoAindaNaoGerada() {
         when(currentUserProvider.getScopeUserIds()).thenReturn(List.of(1L));
         when(bankAccountService.getSaldoAtualTotal()).thenReturn(BigDecimal.ZERO);
-        when(expenseRepository.findUpcomingUnpaid(anyList(), any(), any())).thenReturn(List.of());
-        when(incomeRepository.findAllByUserIdAndRecebidaFalseAndDataBetween(anyList(), any(), any())).thenReturn(List.of());
+        when(expenseRepository.findNaoRealizadasAte(anyList(), any(), any())).thenReturn(List.of());
+        when(incomeRepository.findNaoRealizadasAte(anyList(), any(), any())).thenReturn(List.of());
 
         Subscription assinatura = Subscription.builder().id(9L).user(user).descricao("Netflix")
                 .valor(BigDecimal.valueOf(39.90)).diaCobranca(hoje.getDayOfMonth())
@@ -145,8 +190,8 @@ class FluxoCaixaServiceImplTest {
     void deveExcluirAssinaturaJaGerada() {
         when(currentUserProvider.getScopeUserIds()).thenReturn(List.of(1L));
         when(bankAccountService.getSaldoAtualTotal()).thenReturn(BigDecimal.ZERO);
-        when(expenseRepository.findUpcomingUnpaid(anyList(), any(), any())).thenReturn(List.of());
-        when(incomeRepository.findAllByUserIdAndRecebidaFalseAndDataBetween(anyList(), any(), any())).thenReturn(List.of());
+        when(expenseRepository.findNaoRealizadasAte(anyList(), any(), any())).thenReturn(List.of());
+        when(incomeRepository.findNaoRealizadasAte(anyList(), any(), any())).thenReturn(List.of());
 
         Subscription assinatura = Subscription.builder().id(9L).user(user).descricao("Netflix")
                 .valor(BigDecimal.valueOf(39.90)).diaCobranca(hoje.getDayOfMonth())

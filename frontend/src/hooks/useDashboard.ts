@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { api } from "@/lib/api";
-import type { BalanceEvolutionPoint, DashboardSummary } from "@/types/dashboard";
+import type { DashboardSummary } from "@/types/dashboard";
+import type { SaldoHistoricoPonto } from "@/types/saldoHistorico";
 
 export const DASHBOARD_KEY = "dashboard";
 
@@ -19,7 +20,7 @@ export function useBalanceEvolution(dias = 30) {
   return useQuery({
     queryKey: [DASHBOARD_KEY, "evolucao-saldo", dias],
     queryFn: async () => {
-      const { data } = await api.get<BalanceEvolutionPoint[]>("/dashboard/evolucao-saldo", {
+      const { data } = await api.get<SaldoHistoricoPonto[]>("/dashboard/evolucao-saldo", {
         params: { dias },
       });
       return data;
